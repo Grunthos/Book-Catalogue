@@ -30,6 +30,20 @@
 				android:gravity="left|center_vertical"
 				/>
 
+		    <com.eleybourn.bookcatalogue.TouchLinearLayout 
+				xmlns:tlv="http://schemas.android.com/apk/res/com.eleybourn.bookcatalogue"
+				android:orientation="vertical"
+		
+		    	android:id="@+id/author_list" 
+		    	android:layout_width="fill_parent" 
+				android:layout_height="wrap_content" 
+				android:layout_weight="100"
+		
+				tlv:grabber="@+id/grabber"
+				tlv:normal_height="64dip"
+				tlv:remove_mode="none"
+		    	android:textSize="16sp" />
+
 			<EditText android:id="@+id/title" 
 				android:layout_width="fill_parent"
 				android:layout_height="wrap_content" 

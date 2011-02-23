@@ -61,6 +61,7 @@ import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.ContextMenu;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -81,9 +82,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TabHost;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewSwitcher.ViewFactory;
 
+import com.eleybourn.bookcatalogue.EditObjectList.ListAdapter;
 import com.eleybourn.bookcatalogue.Fields.Field;
 import com.eleybourn.bookcatalogue.Fields.FieldValidator;
 import com.eleybourn.bookcatalogue.LibraryThingManager.ImageSizes;
@@ -131,7 +134,8 @@ public class BookEditFields extends Activity {
 	
 	private ArrayList<Author> mAuthorList = null;
 	private ArrayList<Series> mSeriesList = null;
-
+	AuthorListAdapter mAuthorAdapter = null;
+	
 	private android.util.DisplayMetrics mMetrics;
 
 	// Global value for values from UI. Recreated periodically; at least 
@@ -394,9 +398,6 @@ public class BookEditFields extends Activity {
 				}
 			});
 			
-			
-			
-			
 			//spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item);
 			//spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 			//mBookshelfText.setAdapter(spinnerAdapter);
@@ -425,6 +426,18 @@ public class BookEditFields extends Activity {
 				mFields.getField(R.id.bookshelf_text).setValue(savedInstanceState.getString("bookshelf_text"));
 			}
 
+			// Set up list handling
+	        mAuthorAdapter = new AuthorListAdapter(this, R.layout.row_edit_author_list, mAuthorList);
+	        TouchLinearLayout tlv = (TouchLinearLayout) this.findViewById(R.id.author_list);
+	        //tlv.setAdapter(mAuthorAdapter);
+	        tlv.setDropListener(mAuthorDropListener);
+	        int pos = 0;
+	        for (Author a : mAuthorList) {
+	        	tlv.addView(addAuthor(a, pos));
+	        	pos++;
+	        }
+
+	        
 			// Setup the Save/Add/Anthology UI elements
 			setupUi();
 
@@ -1272,5 +1285,144 @@ public class BookEditFields extends Activity {
 	    private Context mContext;
 
 	}
+
+    public View addAuthor(Author a, int position) {
+    	// Get the view; if not defined, load it.
+        View v = null;
+        if (v == null) {
+            LayoutInflater vi = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            v = vi.inflate(R.layout.row_edit_author_list, null);
+        }
+        v.setClickable(true);
+
+        // Save this views position
+        v.setTag(R.id.TAG_POSITION, new Integer(position));
+        {
+        	// Giving the whole row ad onClickListener seems to interfere
+        	// with drag/drop.
+        	View details = v.findViewById(R.id.row_details);
+        	if (details != null)
+                details.setOnClickListener(null); //TODO FIX mRowClickListener);
+        }
+
+        {
+        	View g = v.findViewById(R.id.grabber);
+        	if (g != null)
+                g.setClickable(true); //TODO FIX mRowClickListener);
+        }
+
+        // Get the object, if not null, do some processing
+        final Author o = mAuthorList.get(position);
+        if (o != null) {
+
+        	ImageView del = (ImageView) v.findViewById(R.id.row_delete);
+            if (del != null) {
+	    		del.setImageResource(android.R.drawable.ic_delete);
+            	del.setOnClickListener(new OnClickListener() {
+					@Override
+					public void onClick(View v) {
+						mAuthorList.remove(o);
+					}}); //TODO FIX mRowDeleteListener);   
+            }            		
+
+        	// Ask the subclass to set other fields.
+        	try {
+        		//TODO Fix
+                //onSetupView(v, o);
+        		TextView t = (TextView) v.findViewById(R.id.row_author);
+        		t.setText(o.getDisplayName());
+        	} catch (Exception e) {
+        		Log.e("BookCatalogue.EditObjectList", "onSetupView failed", e);
+        	}
+
+        }
+        return v;
+    }
+
+	/**
+	 * Adapter to manage the rows.
+	 * 
+	 * @author Grunthos
+	 */
+	final class AuthorListAdapter extends ArrayAdapter<Author> {
+
+		// Flag fields to (slightly) optimize lookups and prevent looking for 
+		// fields that are not there.
+		private boolean mCheckedFields = false;
+		private boolean mHasPosition = false;
+		private boolean mHasUp = false;
+		private boolean mHasDown = false;
+		private boolean mHasDelete = false;
+
+        public AuthorListAdapter(Context context, int textViewResourceId, ArrayList<Author> items) {
+                super(context, textViewResourceId, items);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+        	// Get the view; if not defined, load it.
+            View v = convertView;
+            if (v == null) {
+                LayoutInflater vi = (LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                v = vi.inflate(R.layout.row_edit_author_list, null);
+            }
+            v.setClickable(true);
+
+            // Save this views position
+            v.setTag(R.id.TAG_POSITION, new Integer(position));
+
+            {
+            	// Giving the whole row ad onClickListener seems to interfere
+            	// with drag/drop.
+            	View details = v.findViewById(R.id.row_details);
+            	if (details != null)
+                    details.setOnClickListener(null); //TODO FIX mRowClickListener);
+            }
+
+            {
+            	View g = v.findViewById(R.id.grabber);
+            	if (g != null)
+                    g.setClickable(true); //TODO FIX mRowClickListener);
+            }
+
+            // Get the object, if not null, do some processing
+            final Author o = mAuthorList.get(position);
+            if (o != null) {
+
+            	ImageView del = (ImageView) v.findViewById(R.id.row_delete);
+                if (del != null) {
+    	    		del.setImageResource(android.R.drawable.ic_delete);
+                	del.setOnClickListener(new OnClickListener() {
+						@Override
+						public void onClick(View v) {
+							AuthorListAdapter.this.remove(o);
+						}}); //TODO FIX mRowDeleteListener);   
+                	mHasDelete = true;
+                }            		
+
+            	// Ask the subclass to set other fields.
+            	try {
+            		//TODO Fix
+                    //onSetupView(v, o);
+            		TextView t = (TextView) v.findViewById(R.id.row_author);
+            		t.setText(o.getDisplayName());
+            	} catch (Exception e) {
+            		Log.e("BookCatalogue.EditObjectList", "onSetupView failed", e);
+            	}
+
+                mCheckedFields = true;
+            }
+            return v;
+        }
+	}
 	
+	private TouchLinearLayout.DropListener mAuthorDropListener=new TouchLinearLayout.DropListener() {
+		@Override
+		public void drop(int from, int to) {
+				Log.i("BC", "Drop " + from + "->"+to);
+				Author item=mAuthorAdapter.getItem(from);				
+				mAuthorAdapter.remove(item);
+				mAuthorAdapter.insert(item, to);
+		}
+	};
 }
