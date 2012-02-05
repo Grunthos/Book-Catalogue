@@ -6,6 +6,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.widget.AbsListView;
 import android.widget.ExpandableListView;
+import android.widget.AbsListView.OnScrollListener;
 
 /**
  * Subclass of ExpandableListView that uses a local implementation of FastScroller to bypass
@@ -31,9 +32,33 @@ public class FastScrollExpandableListView extends ExpandableListView {
 		super(context, attrs, defStyle);
 	}
 
-	/** OnScrollListener, if used */
 	private OnScrollListener mOnScrollListener = null;
+	@Override
+	public void setOnScrollListener(OnScrollListener listener) {
+		mOnScrollListener = listener;
+	}
 
+	private OnScrollListener mOnScrollDispatcher = new OnScrollListener(){
+		@Override
+		public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+			if (mScroller != null)
+				mScroller.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
+			if (mOnScrollListener != null)
+				mOnScrollListener.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
+		}
+
+		@Override
+		public void onScrollStateChanged(AbsListView view, int scrollState) {
+			if (mOnScrollListener != null)
+				mOnScrollListener.onScrollStateChanged(view, scrollState);
+		};
+	};
+
+	{
+		super.setOnScrollListener(mOnScrollDispatcher);
+	}
+
+	
 	/**
 	 * Called to create and start a new FastScroller if none already exists.
 	 * 
@@ -42,24 +67,7 @@ public class FastScrollExpandableListView extends ExpandableListView {
 	private void initScroller() {
 		if (mScroller != null)
 			return;
-
 		mScroller = new FastScroller(this.getContext(), this);
-		// Scroller needs access to onScroll event.
-		if (mScroller != null && mOnScrollListener == null) {
-			// Create a listener that just dispatches onScroll to mScroller.
-			mOnScrollListener = new OnScrollListener(){
-				@Override
-				public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-					if (mScroller != null)
-						mScroller.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
-				}
-	
-				@Override
-				public void onScrollStateChanged(AbsListView view, int scrollState) {
-				}};
-			// Start listening
-			this.setOnScrollListener(mOnScrollListener);
-		}
 	}
 
 	/**
