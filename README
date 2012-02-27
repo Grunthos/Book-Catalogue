@@ -64,7 +64,6 @@ TODO: goodreads IMPORT
 TODO: Disable thumbnail cache if no external media?
 TODO: User preference to disable thumbnail cache
 
-
 new in v3.8.1
 * Italian translation added
 * TODO: Catch XML error in search org.apache.harmony.xml.ExpatParser$ParseException: At line 2, column 0: junk after document element
