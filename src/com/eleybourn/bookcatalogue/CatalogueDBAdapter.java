@@ -3173,7 +3173,7 @@ public class CatalogueDBAdapter {
 		 * KEY_RATING, KEY_READ, KEY_NOTES, KEY_LOCATION, KEY_READ_START, KEY_READ_END, KEY_SIGNED, & DATE_ADDED
 		 */
 		if (!values.containsKey(KEY_DATE_ADDED))
-			values.putString(KEY_DATE_ADDED, Utils.toSqlDate(new Date()));
+			values.putString(KEY_DATE_ADDED, Utils.toSqlDateTime(new Date()));
 
 		// Make sure we have an author
 		ArrayList<Author> authors = (ArrayList<Author>) values.getSerializable(CatalogueDBAdapter.KEY_AUTHOR_ARRAY);
@@ -4163,7 +4163,9 @@ public class CatalogueDBAdapter {
 		//if (m_allBooksForGoodreadsStmt == null) {
 		//	m_allBooksForGoodreadsStmt = compileStatement("Select isbn, " + KEY_BOOK + " from " + DB_TB_BOOKS + " Order by " + KEY_BOOK);
 		//}
-		String sql = "Select " + KEY_ISBN + ", " + KEY_ROWID + ", " + DOM_GOODREADS_BOOK_ID + " from " + DB_TB_BOOKS + " Where " + KEY_ROWID + " > " + startId;
+		String sql = "Select " + KEY_ISBN + ", " + KEY_ROWID + ", " + DOM_GOODREADS_BOOK_ID + 
+				", " + KEY_NOTES + ", " + KEY_READ_END + ", " + KEY_RATING + 
+				" from " + DB_TB_BOOKS + " Where " + KEY_ROWID + " > " + startId;
 		if (updatesOnly) {
 			sql += " and " + DOM_LAST_UPDATE_DATE + " > " + DOM_LAST_GOODREADS_SYNC_DATE;
 		}
@@ -4177,7 +4179,9 @@ public class CatalogueDBAdapter {
 	 * Query to get a specific book ISBN from the ID for sending to goodreads.
 	 */
 	public BooksCursor getBookForGoodreadsCursor(long bookId) {
-		String sql = "Select " + KEY_ROWID + ", " + KEY_ISBN + ", " + DOM_GOODREADS_BOOK_ID + " from " + DB_TB_BOOKS + " Where " + KEY_ROWID + " = " + bookId + " Order by " + KEY_ROWID;
+		String sql = "Select " + KEY_ROWID + ", " + KEY_ISBN + ", " + DOM_GOODREADS_BOOK_ID + 
+				", " + KEY_NOTES + ", " + KEY_READ_END + ", " + KEY_RATING + 
+				" from " + DB_TB_BOOKS + " Where " + KEY_ROWID + " = " + bookId + " Order by " + KEY_ROWID;
 		BooksCursor cursor = fetchBooks(sql, EMPTY_STRNG_ARRAY);
 		return cursor;
 	}
@@ -4212,7 +4216,7 @@ public class CatalogueDBAdapter {
 		mSetGoodreadsBookIdStmt.execute();
 	}
 
-	/** Support statement for setGoodreadsBookId() */
+	/** Support statement for setGoodreadsSyncDate() */
 	private SynchronizedStatement mSetGoodreadsSyncDateStmt = null;
 	/** 
 	 * Set the goodreads sync date to the current time
@@ -4227,6 +4231,22 @@ public class CatalogueDBAdapter {
 		mSetGoodreadsSyncDateStmt.bindLong(1, bookId);
 		mSetGoodreadsSyncDateStmt.execute();		
 	}
+	
+//	/** Support statement for getGoodreadsSyncDate() */
+//	private SynchronizedStatement mGetGoodreadsSyncDateStmt = null;
+//	/** 
+//	 * Set the goodreads sync date to the current time
+//	 * 
+//	 * @param bookId
+//	 */
+//	public String getGoodreadsSyncDate(long bookId) {
+//		if (mGetGoodreadsSyncDateStmt == null) {
+//			String sql = "Select " + DOM_LAST_GOODREADS_SYNC_DATE + " From " + DB_TB_BOOKS + " Where " + KEY_ROWID + " = ?";
+//			mGetGoodreadsSyncDateStmt = mStatements.add("mGetGoodreadsSyncDateStmt", sql);			
+//		}
+//		mGetGoodreadsSyncDateStmt.bindLong(1, bookId);
+//		return mGetGoodreadsSyncDateStmt.simpleQueryForString();			
+//	}
 	
 /**************************************************************************************/
 	
