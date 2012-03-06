@@ -21,6 +21,7 @@
 package com.eleybourn.bookcatalogue;
 
 //import android.R;
+import android.app.Activity;
 import android.app.TabActivity;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -251,8 +252,8 @@ public class BookEdit extends TabActivity {
 					book.putString(CatalogueDBAdapter.KEY_DESCRIPTION, thisBook.getString(thisBook.getColumnIndex(CatalogueDBAdapter.KEY_DESCRIPTION)));
 					book.putString(CatalogueDBAdapter.KEY_GENRE, thisBook.getString(thisBook.getColumnIndex(CatalogueDBAdapter.KEY_GENRE)));
 					
-					book.putParcelableArrayList(CatalogueDBAdapter.KEY_AUTHOR_ARRAY, mDbHelper.getBookAuthorList(mRowId));
-					book.putParcelableArrayList(CatalogueDBAdapter.KEY_SERIES_ARRAY, mDbHelper.getBookSeriesList(mRowId));
+					book.putSerializable(CatalogueDBAdapter.KEY_AUTHOR_ARRAY, mDbHelper.getBookAuthorList(mRowId));
+					book.putSerializable(CatalogueDBAdapter.KEY_SERIES_ARRAY, mDbHelper.getBookSeriesList(mRowId));
 					
 					i.putExtra("bookData", book);
 					startActivityForResult(i, DUPLICATE_ID);
@@ -267,4 +268,24 @@ public class BookEdit extends TabActivity {
 		}
 		return true;
 	}
+	
+	/********************************************************
+	 * Standard STATIC Methods
+	 * ******************************************************
+	 */
+
+	/**
+	 * Load the EditBook activity based on the provided id. Also open to the provided tab.
+	 * 
+	 * @param id The id of the book to edit
+	 * @param tab Which tab to open first
+	 */
+	public static void editBook(Activity a, long id, int tab) {
+		Intent i = new Intent(a, BookEdit.class);
+		i.putExtra(CatalogueDBAdapter.KEY_ROWID, id);
+		i.putExtra(BookEdit.TAB, tab);
+		a.startActivityForResult(i, R.id.ACTIVITY_EDIT_BOOK);
+		return;
+	}
+
 }

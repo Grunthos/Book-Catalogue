@@ -21,6 +21,7 @@
 package com.eleybourn.bookcatalogue;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -28,22 +29,34 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.TimeZone;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.entity.BufferedHttpEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
+
+import com.eleybourn.bookcatalogue.database.CoversDbHelper;
 
 import android.content.Context;
 import android.content.Intent;
@@ -61,13 +74,60 @@ public class Utils {
 	private static String UTF8 = "utf8";
 	private static int BUFFER_SIZE = 8192;
 
-	// Used for date parsing
-	static SimpleDateFormat mDateSqlSdf = new SimpleDateFormat("yyyy-MM-dd");
-	static SimpleDateFormat mDate1Sdf = new SimpleDateFormat("dd-MMM-yyyy");
-	static SimpleDateFormat mDate2Sdf = new SimpleDateFormat("dd-MMM-yy");
-	static SimpleDateFormat mDateUSSdf = new SimpleDateFormat("MM-dd-yyyy");
-	static SimpleDateFormat mDateEngSdf = new SimpleDateFormat("dd-MM-yyyy");
-	static DateFormat mDateDispSdf = DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
+	// External DB for cover thumbnails
+	private boolean mCoversDbCreateFail = false;
+	/** Database is non-static member so we don't make it linger longer than necessary */
+	private CoversDbHelper mCoversDb = null;
+
+	// Used for formatting dates for sql; everything is assumed to be UTC, or converted to UTC since 
+	// UTC is the default SQLite TZ. 
+	static TimeZone tzUtc = TimeZone.getTimeZone("UTC");
+
+	// Used for date parsing and display
+	private static SimpleDateFormat mDateFullHMSSqlSdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	static { mDateFullHMSSqlSdf.setTimeZone(tzUtc); }
+	private static SimpleDateFormat mDateFullHMSqlSdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+	static { mDateFullHMSqlSdf.setTimeZone(tzUtc); }
+	private static SimpleDateFormat mDateSqlSdf = new SimpleDateFormat("yyyy-MM-dd");
+	static { mDateSqlSdf.setTimeZone(tzUtc); }
+
+	private static SimpleDateFormat mDate1HMSSdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
+	private static SimpleDateFormat mDate1HMSdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm");
+	private static SimpleDateFormat mDate1Sdf = new SimpleDateFormat("dd-MMM-yyyy");
+	private static SimpleDateFormat mDate2HMSSdf = new SimpleDateFormat("dd-MMM-yy HH:mm:ss");
+	private static SimpleDateFormat mDate2HMSdf = new SimpleDateFormat("dd-MMM-yy HH:mm");
+	private static SimpleDateFormat mDate2Sdf = new SimpleDateFormat("dd-MMM-yy");
+	private static SimpleDateFormat mDateUSHMSSdf = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
+	private static SimpleDateFormat mDateUSHMSdf = new SimpleDateFormat("MM-dd-yyyy HH:mm");
+	private static SimpleDateFormat mDateUSSdf = new SimpleDateFormat("MM-dd-yyyy");
+	private static SimpleDateFormat mDateEngHMSSdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+	private static SimpleDateFormat mDateEngHMSdf = new SimpleDateFormat("dd-MM-yyyy HH:mm");
+	private static SimpleDateFormat mDateEngSdf = new SimpleDateFormat("dd-MM-yyyy");
+	private static DateFormat mDateDispSdf = DateFormat.getDateInstance(java.text.DateFormat.MEDIUM);
+	// Dates of the form: 'Fri May 5 17:23:11 -0800 2012'
+	private static final SimpleDateFormat mLongUnixHMSSdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss ZZZZ yyyy");
+	private static final SimpleDateFormat mLongUnixHMSdf = new SimpleDateFormat("EEE MMM dd HH:mm ZZZZ yyyy");
+	private static final SimpleDateFormat mLongUnixSdf = new SimpleDateFormat("EEE MMM dd ZZZZ yyyy");
+
+	/** List of all formats, keep the ones with timezone info near the start */
+	private static final SimpleDateFormat[] mParseDateFormats = new SimpleDateFormat[] {
+			mLongUnixHMSSdf,
+			mLongUnixHMSdf,
+			mLongUnixSdf,
+			mDateFullHMSSqlSdf,
+			mDateFullHMSqlSdf,
+			mDateSqlSdf,
+			mDate1HMSSdf,
+			mDate1HMSdf,
+			mDate1Sdf,
+			mDate2HMSSdf,
+			mDate2HMSdf,
+			mDate2Sdf,
+			mDateUSSdf,
+			mDateEngHMSSdf,
+			mDateEngHMSdf,
+			mDateEngSdf,
+			};
 
 	public static final String APP_NAME = "Book Catalogue";
 	public static final String LOCATION = "bookCatalogue";
@@ -88,22 +148,19 @@ public class Utils {
 	public static final String EXTERNAL_FILE_PATH = Environment.getExternalStorageDirectory() + "/" + LOCATION;
 	public static final String ERRORLOG_FILE = EXTERNAL_FILE_PATH + "/error.log";
 
-	public static String toSqlDate(Date d) {
+	public static String toSqlDateOnly(Date d) {
 		return mDateSqlSdf.format(d);
+	}
+	public static String toSqlDateTime(Date d) {
+		return mDateFullHMSSqlSdf.format(d);
 	}
 	public static String toPrettyDate(Date d) {
 		return mDateDispSdf.format(d);		
 	}
 
 	public static Date parseDate(String s) {
-		SimpleDateFormat[] formats = new SimpleDateFormat[] {
-				mDateSqlSdf,
-				mDate1Sdf,
-				mDate2Sdf,
-				mDateUSSdf,
-				mDateEngSdf};
 		Date d;
-		for ( SimpleDateFormat sdf : formats ) {
+		for ( SimpleDateFormat sdf : mParseDateFormats ) {
 			try {
 				// Parse as SQL/ANSI date
 				d = sdf.parse(s);
@@ -176,7 +233,7 @@ public class Utils {
 	 * 
 	 * @return		Converted string
 	 */
-	static String encodeListItem(String s, char delim) {
+	public static String encodeListItem(String s, char delim) {
 		StringBuilder ns = new StringBuilder();
 		for (int i = 0; i < s.length(); i++){
 		    char c = s.charAt(i);        
@@ -245,7 +302,7 @@ public class Utils {
 		 * @param s		String to convert
 		 * @return		Converted string
 		 */
-		String encodeList(ArrayList<T> sa, char delim) {
+		public String encodeList(ArrayList<T> sa, char delim) {
 			Iterator<T> si = sa.iterator();
 			return encodeList(si, delim);
 		}
@@ -329,7 +386,7 @@ public class Utils {
 	 * @param s		String representing the list
 	 * @return		Array of strings resulting from list
 	 */
-	static ArrayList<String> decodeList(String s, char delim) {
+	public static ArrayList<String> decodeList(String s, char delim) {
 		StringBuilder ns = new StringBuilder();
 		ArrayList<String> list = new java.util.ArrayList<String>();
 		boolean inEsc = false;
@@ -411,13 +468,29 @@ public class Utils {
 		HttpURLConnection c;
 		InputStream in = null;
 		try {
-			c = (HttpURLConnection) u.openConnection();
-			c.setConnectTimeout(30000);
-			c.setRequestMethod("GET");
-			c.setDoOutput(true);
-			c.connect();
-			in = c.getInputStream();
+            HttpGet httpRequest = null;
+
+			httpRequest = new HttpGet(u.toURI());
+
+            HttpClient httpclient = new DefaultHttpClient();
+            HttpResponse response = (HttpResponse) httpclient.execute(httpRequest);
+
+            HttpEntity entity = response.getEntity();
+            BufferedHttpEntity bufHttpEntity = new BufferedHttpEntity(entity);
+            in = bufHttpEntity.getContent();
+
+            // The defaut URL fetcher does not cope well with pages that have not content
+            // header (including goodreads images!). So use the more advanced one.
+			//c = (HttpURLConnection) u.openConnection();
+			//c.setConnectTimeout(30000);
+			//c.setRequestMethod("GET");
+			//c.setDoOutput(true);
+			//c.connect();
+			//in = c.getInputStream();
 		} catch (IOException e) {
+			Logger.logError(e);
+			return "";
+		} catch (URISyntaxException e) {
 			Logger.logError(e);
 			return "";
 		}
@@ -425,7 +498,8 @@ public class Utils {
 		String filename = "";
 		FileOutputStream f = null;
 		try {
-			filename = CatalogueDBAdapter.fetchThumbnailFilename(0, true, filenameSuffix);
+			File file = CatalogueDBAdapter.getTempThumbnail(filenameSuffix);
+			filename = file.getAbsolutePath();
 			f = new FileOutputStream(filename);
 		} catch (FileNotFoundException e) {
 			Logger.logError(e);
@@ -444,6 +518,83 @@ public class Utils {
 			return "";
 		}
 		return filename;
+	}
+
+	/**
+	 * Given a URL, get an image and return as a bitmap.
+	 * 
+	 * @param urlText			Image file URL
+	 *
+	 * @return	Downloaded bitmap
+	 */
+	static public Bitmap getBitmapFromUrl(String urlText) {
+		return getBitmapFromBytes( getBytesFromUrl(urlText) );
+	}
+
+	/**
+	 * Given byte array that represents an image (jpg, png etc), return as a bitmap.
+	 * 
+	 * @param bytes			Raw byte data
+	 *
+	 * @return	bitmap
+	 */
+	static public Bitmap getBitmapFromBytes(byte[] bytes) {
+		if (bytes == null || bytes.length == 0)
+			return null;
+
+		BitmapFactory.Options options = new BitmapFactory.Options();
+        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length,options);
+        String s = "Array " + bytes.length + " bytes, bitmap " + bitmap.getHeight() + "x" + bitmap.getWidth();
+        System.out.println(s);
+        return bitmap;
+	}
+
+	/**
+	 * Given a URL, get an image and return as a byte array.
+	 * 
+	 * @param urlText			Image file URL
+	 *
+	 * @return	Downloaded byte[]
+	 */
+	static public byte[] getBytesFromUrl(String urlText) {
+		// Get the URL
+		URL u;
+		try {
+			u = new URL(urlText);
+		} catch (MalformedURLException e) {
+			Logger.logError(e);
+			return null;
+		}
+		// Request it from the network
+		HttpURLConnection c;
+		InputStream in = null;
+		try {
+			c = (HttpURLConnection) u.openConnection();
+			c.setConnectTimeout(30000);
+			c.setRequestMethod("GET");
+			c.setDoOutput(true);
+			c.connect();
+			in = c.getInputStream();
+		} catch (IOException e) {
+			Logger.logError(e);
+			return null;
+		}
+
+		// Save the output to a byte output stream
+		ByteArrayOutputStream f = new ByteArrayOutputStream();
+		try {
+			byte[] buffer = new byte[1024];
+			int len1 = 0;
+			while ( (len1 = in.read(buffer)) > 0 ) {
+				f.write(buffer,0, len1);
+			}
+			f.close();
+		} catch (IOException e) {
+			Logger.logError(e);
+			return null;
+		}
+		// Return it as a byte[]
+		return f.toByteArray();
 	}
 
 	/**
@@ -544,7 +695,7 @@ public class Utils {
     		// Get the best file (if present) and rename it.
 			if (bestFile >= 0) {
 	    		File file = new File(files.get(bestFile));
-	    		file.renameTo(CatalogueDBAdapter.fetchThumbnail(0));
+	    		file.renameTo(CatalogueDBAdapter.getTempThumbnail());
 			}
     		// Finally, cleanup the data
     		result.remove("__thumbnail");
@@ -718,8 +869,8 @@ public class Utils {
 	/**
 	 * Passed a list of Objects, remove duplicates based on the toString result.
 	 * 
-	 * TODO Add author_aliases table to allow further pruning (eg. Joe Haldeman == Jow W Haldeman).
-	 * TODO Add series_aliases table to allow further pruning (eg. 'Amber Series' <==> 'Amber').
+	 * ENHANCE Add author_aliases table to allow further pruning (eg. Joe Haldeman == Jow W Haldeman).
+	 * ENHANCE Add series_aliases table to allow further pruning (eg. 'Amber Series' <==> 'Amber').
 	 * 
 	 * @param db		Database connection to lookup IDs
 	 * @param list		List to clean up
@@ -755,6 +906,58 @@ public class Utils {
 			list.remove(toDelete.get(i).intValue());
 	}
 
+	/**
+	 * Remove series from the list where the names are the same, but one entry has a null or empty position.
+	 * eg. the followig list should be processed as indicated:
+	 * 
+	 * fred(5)
+	 * fred <-- delete
+	 * bill <-- delete
+	 * bill <-- delete
+	 * bill(1)
+	 * 
+	 * @param list
+	 */
+	public static void pruneSeriesList(ArrayList<Series> list) {
+		ArrayList<Series> toDelete = new ArrayList<Series>();
+		Hashtable<String, Series> index = new Hashtable<String, Series> ();
+
+		for(Series s: list) {
+			final boolean emptyNum = s.num == null || s.num.trim().equals("");
+			final String lcName = s.name.trim().toLowerCase();
+			final boolean inNames = index.containsKey(lcName);
+			if (!inNames) {
+				// Just add and continue
+				index.put(lcName, s);
+			} else {
+				// See if we can purge either
+				if (emptyNum) {
+					// Always delete series with empty numbers if an equally or more specific one exists
+					toDelete.add(s);
+				} else {
+					// See if the one in 'index' also has a num
+					Series orig = index.get(lcName);
+					if (orig.num == null || orig.num.trim().equals("")) {
+						// Replace with this one, and mark orig for delete
+						index.put(lcName, s);
+						toDelete.add(orig);
+					} else {
+						// Both have numbers. See if they are the same.
+						if (s.num.trim().toLowerCase().equals(orig.num.trim().toLowerCase())) {
+							// Same exact series, delete this one
+							toDelete.add(s);
+						} else {
+							// Nothing to do: this is a different series position							
+						}
+					}
+				}
+			}
+		}
+		
+		for (Series s: toDelete) 
+			list.remove(s);
+
+	}
 	/**
 	 * Convert a array of objects to a string.
 	 * 
@@ -801,30 +1004,176 @@ public class Utils {
 			Logger.logError(e, s);
 		}
 	}
-	
+
+	/**
+	 * Shrinks the image in the passed file to the specified dimensions, and places the image
+	 * in the passed view. The bitmap is returned.
+	 * 
+	 * @param file
+	 * @param destView
+	 * @param maxWidth
+	 * @param maxHeight
+	 * @param exact
+	 * 
+	 * @return
+	 */
 	public static Bitmap fetchFileIntoImageView(File file, ImageView destView, int maxWidth, int maxHeight, boolean exact) {
+
+		Bitmap bm = null;					// resultant Bitmap (which we will return) 
+
 		// Get the file, if it exists. Otherwise set 'help' icon and exit.
 		if (!file.exists()) {
 			if (destView != null)
 				destView.setImageResource(android.R.drawable.ic_menu_help);
 			return null;
 		}
-		
+
+		bm = shrinkFileIntoImageView(destView, file.getPath(), maxWidth, maxHeight, exact);
+
+		return bm;
+	}
+
+	public static final String getCoverCacheId(final String hash, final int maxWidth, final int maxHeight) {
+		return hash + ".thumb." + maxWidth + "x" + maxHeight + ".jpg";
+	}
+
+	/**
+	 * Called in the UI thread, will return a cached image OR NULL.
+	 * 
+	 * @param originalFile	File representing original image file
+	 * @param destView		View to populate
+	 * @param cacheId		ID of the image in the cache
+	 * 
+	 * @return				Bitmap (if cached) or NULL (if not cached)
+	 */
+	public Bitmap fetchCachedImageIntoImageView(final File originalFile, final ImageView destView, final String cacheId) {
 		Bitmap bm = null;					// resultant Bitmap (which we will return) 
-		String filename = file.getPath();	// Full file spec
+
+		// Get the db
+		CoversDbHelper coversDb = getCoversDb();
+		if (coversDb != null) {
+			byte[] bytes;
+			// Wrap in try/catch. It's possible the SDCard got removed and DB is now inaccessible
+			Date expiry;
+			if (originalFile == null)
+				expiry = new Date(0L);
+			else
+				expiry = new Date(originalFile.lastModified());
+
+			try { bytes = coversDb.getFile(cacheId, expiry); } 
+				catch (Exception e) {
+					bytes = null;
+				};
+			if (bytes != null) {
+				try {
+					bm = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+				} catch (Exception e) {
+					bytes = null;
+				};
+			}
+		}
+
+		if (bm != null) {
+			//
+			// Remove any tasks that may be getting the image because they may overwrite anything we do.
+			// Remember: the view may have been re-purposed and have a different associated task which
+			// must be removed from the view and removed from the queue.
+			//
+			if (destView != null)
+				GetThumbnailTask.clearOldTaskFromView( destView );
+
+			// We found it in cache
+			if (destView != null)
+				destView.setImageBitmap(bm);
+			// Return the image
+		}
+		return bm;
+	}
+
+	/**
+	 * Called in the UI thread, will either use a cached cover OR start a background task to create and load it.
+	 * 
+	 * If a cached image is used a background task is still started to check the file date vs the cache date. If the
+	 * cached image date is < the file, it is rebuilt.
+	 * 
+	 * @param destView			View to populate
+	 * @param maxWidth			Max width of resulting image
+	 * @param maxHeight			Max height of resulting image
+	 * @param exact				Whether to fit dimensions exactly
+	 * @param bookId			ID of book to retrieve.
+	 * @param checkCache		Indicates if cache should be checked for this cover
+	 * @param allowBackground	Indicates if request can be put in background task.
+	 * 
+	 * @return				Bitmap (if cached) or NULL (if done in background)
+	 */
+	public final Bitmap fetchBookCoverIntoImageView(final ImageView destView, int maxWidth, int maxHeight, final boolean exact, final String hash, final boolean checkCache, final boolean allowBackground) {
+
+		// Get the original file so we can use the modification date, path etc
+		File coverFile = CatalogueDBAdapter.fetchThumbnailByUuid(hash);
+
+		Bitmap bm = null;
+		boolean cacheWasChecked = false;
+
+		// If we want to check the cache, AND we dont have cache building happening, then check it.
+		if (checkCache && !GetThumbnailTask.hasActiveTasks() && !ThumbnailCacheWriterTask.hasActiveTasks()) {
+			final String cacheId = getCoverCacheId(hash, maxWidth, maxHeight);
+			bm = fetchCachedImageIntoImageView(coverFile, destView, cacheId);
+			cacheWasChecked = true;
+		} else {
+			//System.out.println("Skipping cache check");
+		}
+
+		if (bm != null)
+			return bm;
+
+		// Check the file exists. Otherwise set 'help' icon and exit.
+		//if (!coverFile.exists()) {
+		//	if (destView != null)
+		//		destView.setImageResource(android.R.drawable.ic_menu_help);
+		//	return null;
+		//}
+
+		// If we get here, the image is not in the cache but the original exists. See if we can queue it.
+		if (allowBackground) {
+			destView.setImageBitmap(null);
+			GetThumbnailTask.getThumbnail(hash, destView, maxWidth, maxHeight, cacheWasChecked);
+			return null;
+		}
+
+		//File coverFile = CatalogueDBAdapter.fetchThumbnail(bookId);
 		
+		// File is not in cache, original exists, we are in the background task (or not allowed to queue request)
+		return shrinkFileIntoImageView(destView, coverFile.getPath(), maxWidth, maxHeight, exact);
+
+	}
+
+	/**
+	 * Shrinks the passed image file spec into the specificed dimensions, and returns the bitmap. If the view 
+	 * is non-null, the image is also placed in the view.
+	 * 
+	 * @param destView
+	 * @param filename
+	 * @param maxWidth
+	 * @param maxHeight
+	 * @param exact
+	 * 
+	 * @return
+	 */
+	private static Bitmap shrinkFileIntoImageView(ImageView destView, String filename, int maxWidth, int maxHeight, boolean exact) {
+		Bitmap bm = null;
+
 		// Read the file to get file size
 		BitmapFactory.Options opt = new BitmapFactory.Options();
 		opt.inJustDecodeBounds = true;
 		BitmapFactory.decodeFile( filename, opt );
-		
+
 		// If no size info, or a single pixel, assume file bad and set the 'alert' icon
 		if ( opt.outHeight <= 0 || opt.outWidth <= 0 || (opt.outHeight== 1 && opt.outWidth == 1) ) {
 			if (destView != null)
 				destView.setImageResource(android.R.drawable.ic_dialog_alert);
 			return null;
 		}
-		
+
 		// Next time we don't just want the bounds, we want the file
 		opt.inJustDecodeBounds = false;
 		
@@ -847,13 +1196,17 @@ public class Utils {
 				opt.inSampleSize = samplePow2 / 2;
 				if (opt.inSampleSize < 1)
 					opt.inSampleSize = 1;
-				
-				bm = BitmapFactory.decodeFile( filename, opt );
+				Bitmap tmpBm = BitmapFactory.decodeFile( filename, opt );
 				android.graphics.Matrix matrix = new android.graphics.Matrix();
 				// Fixup ratio based on new sample size and scale it.
 				ratio = ratio / (1.0f / opt.inSampleSize);
 				matrix.postScale(ratio, ratio);
-				bm = Bitmap.createBitmap(bm, 0, 0, opt.outWidth, opt.outHeight, matrix, true); 
+				bm = Bitmap.createBitmap(tmpBm, 0, 0, opt.outWidth, opt.outHeight, matrix, true);
+				// Recycle if original was not returned
+				if (bm != tmpBm) {
+					tmpBm.recycle();
+					tmpBm = null;
+				}
 			} else {
 				// Use a scale that will make image *no larger than* the desired size
 				if (ratio < 1.0f)
@@ -863,13 +1216,14 @@ public class Utils {
 		} catch (OutOfMemoryError e) {
 			return null;
 		}
-		
+
 		// Set ImageView and return bitmap
 		if (destView != null)
 			destView.setImageBitmap(bm);
-		return bm;
+
+		return bm;		
 	}
-	
+
 	public static void showLtAlertIfNecessary(Context context, boolean always, String suffix) {
 		if (USE_LT) {
 			LibraryThingManager ltm = new LibraryThingManager(context);
@@ -993,5 +1347,132 @@ public class Utils {
         }
         return totalSize;
 	}
+	
+	/**
+	 * Check if phone has a network connection
+	 * 
+	 * @return
+	 */
+	/*
+	public static boolean isOnline(Context ctx) {
+	    ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+	    NetworkInfo netInfo = cm.getActiveNetworkInfo();
+	    if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+	        return true;
+	    }
+	    return false;
+	}
+	*/
+
+	/**
+	 * Check if phone can connect to a specific host.
+	 * Does not work....
+	 * 
+	 * ENHANCE: Find a way to make network host checks possible
+	 * 
+	 * @return
+	 */
+	/*
+	public static boolean hostIsAvailable(Context ctx, String host) {
+		if (!isOnline(ctx))
+			return false;
+		int addr;
+		try {
+			addr = lookupHost(host);			
+		} catch (Exception e) {
+			return false;
+		}
+	    ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+	    try {
+		    return cm.requestRouteToHost(ConnectivityManager., addr);	    	
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	*/
+
+	public static int lookupHost(String hostname) {
+	    InetAddress inetAddress;
+	    try {
+	        inetAddress = InetAddress.getByName(hostname);
+	    } catch (UnknownHostException e) {
+	        return -1;
+	    }
+	    byte[] addrBytes;
+	    int addr;
+	    addrBytes = inetAddress.getAddress();
+	    addr = ((addrBytes[3] & 0xff) << 24)
+	            | ((addrBytes[2] & 0xff) << 16)
+	            | ((addrBytes[1] & 0xff) << 8)
+	            |  (addrBytes[0] & 0xff);
+	    return addr;
+	}
+	
+	/**
+	 * Format the given string using the passed paraeters.
+	 */
+	public static String format(Context c, int id, Object...objects) {
+		String f = c.getString(id);
+		return String.format(f, objects);
+	}
+	
+	/**
+	 * Get the 'covers' DB from external storage.
+	 */
+	public final CoversDbHelper getCoversDb() {
+		if (mCoversDb == null) {
+			if (mCoversDbCreateFail)
+				return null;
+			try {
+				mCoversDb = new CoversDbHelper();				
+			} catch (Exception e) {
+				mCoversDbCreateFail = true;
+			}
+		}
+		return mCoversDb;
+	}
+	
+	/**
+	 * Cleanup DB connection, if present
+	 */
+	public void close() {
+		if (mCoversDb != null)
+			mCoversDb.close();
+	}
+
+	/**
+	 * Analyze the covers db
+	 */
+	public void analyzeCovers() {
+		CoversDbHelper db = getCoversDb();
+		if (db != null)
+			db.analyze();
+	}
+
+	/**
+	 * Erase contents of covers cache
+	 */
+	public void eraseCoverCache() {
+		CoversDbHelper db = getCoversDb();
+		if (db != null)
+			db.eraseCoverCache();
+	}
+	
+	/** Calendar to construct dates from month numbers */
+	private static Calendar mCalendar = null;
+	/** Formatter for month names given dates */
+	private static SimpleDateFormat mMonthNameFormatter = null;
+
+	public static String getMonthName(int month) {
+		if (mMonthNameFormatter == null)
+			mMonthNameFormatter = new SimpleDateFormat("MMMM");
+		// Create static calendar if necessary
+		if (mCalendar == null)
+			mCalendar = Calendar.getInstance();
+		// Assumes months are integers and in sequence...which everyone seems to assume
+		mCalendar.set(Calendar.MONTH, month - 1 + java.util.Calendar.JANUARY);
+		return mMonthNameFormatter.format(mCalendar.getTime());
+	}
+
 }
 
