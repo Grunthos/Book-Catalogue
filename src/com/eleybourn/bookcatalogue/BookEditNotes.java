@@ -85,8 +85,14 @@ public class BookEditNotes extends Activity {
 		Cursor location_cur = mDbHelper.fetchAllLocations();
 		try {
 			while (location_cur.moveToNext()) {
-				String publisher = location_cur.getString(location_cur.getColumnIndexOrThrow(CatalogueDBAdapter.KEY_LOCATION));
-				location_list.add(publisher);
+				String location = location_cur.getString(location_cur.getColumnIndexOrThrow(CatalogueDBAdapter.KEY_LOCATION));
+				try {
+					if (location.length() > 2) {
+						location_list.add(location);
+					}
+				} catch (NullPointerException e) {
+					// do nothing
+				}
 			}			
 		} finally {
 			location_cur.close();
@@ -117,8 +123,8 @@ public class BookEditNotes extends Activity {
 			mFields.add(R.id.notes, CatalogueDBAdapter.KEY_NOTES, null);
 
 			ArrayAdapter<String> location_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, getLocations());
-			f = mFields.add(R.id.location, CatalogueDBAdapter.KEY_LOCATION, null);
-			((AutoCompleteTextView)f.getView()).setAdapter(location_adapter);
+			mFields.add(R.id.location, CatalogueDBAdapter.KEY_LOCATION, null);
+			mFields.setAdapter(R.id.location, location_adapter);
 
 			f = mFields.add(R.id.read_start_button, "",  CatalogueDBAdapter.KEY_READ_START, null);
 			f.getView().setOnClickListener(new View.OnClickListener() {
