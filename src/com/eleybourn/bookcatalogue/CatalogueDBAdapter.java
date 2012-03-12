@@ -4138,6 +4138,13 @@ public class CatalogueDBAdapter {
 	 */
 	public boolean deleteBook(long rowId) {
 		boolean success;
+		String uuid = null;
+		try {
+			uuid = this.getBookUuid(rowId);
+		} catch (Exception e) {
+			Logger.logError(e, "Failed to get book UUID");
+		}
+
 		success = mDb.delete(DB_TB_BOOKS, KEY_ROWID + "=" + rowId, null) > 0;
 		purgeAuthors();
 
@@ -4146,7 +4153,19 @@ public class CatalogueDBAdapter {
 		} catch (Exception e) {
 			Logger.logError(e, "Failed to delete FTS");
 		}
-		
+		// Delete thumbnail(s)
+		if (uuid != null) {
+			try {
+				File f = fetchThumbnailByUuid(uuid);
+				while (f.exists()) {
+					f.delete();				
+					f = fetchThumbnailByUuid(uuid);
+				}	
+			} catch (Exception e) {
+				Logger.logError(e, "Failed to delete cover thumbnail");
+			}
+		}
+
 		return success;
 	}
 	
