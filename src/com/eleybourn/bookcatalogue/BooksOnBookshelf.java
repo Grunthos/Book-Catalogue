@@ -623,12 +623,13 @@ public class BooksOnBookshelf extends ListActivity implements BooklistChangeList
 
 		mLastTop = topItem;
 		if (hasLevel1) {
-			mList.moveToPosition(topItem);
-			holder.level1Text.setText(mList.getRowView().getLevel1Data());
-			String s = null;
-			if (hasLevel2) {
-				s = mList.getRowView().getLevel2Data();
-				holder.level2Text.setText(s);
+			if ( mList.moveToPosition(topItem) ) {
+				holder.level1Text.setText(mList.getRowView().getLevel1Data());
+				String s = null;
+				if (hasLevel2) {
+					s = mList.getRowView().getLevel2Data();
+					holder.level2Text.setText(s);
+				}				
 			}
 		}		
 	}
@@ -867,14 +868,14 @@ public class BooksOnBookshelf extends ListActivity implements BooklistChangeList
 		mMenuHandler.addCreateBookItems(menu);
 
 		mMenuHandler.addItem(menu, MNU_SORT, R.string.select_style, android.R.drawable.ic_menu_sort_alphabetically);
-		mMenuHandler.addItem(menu, MNU_EDIT_STYLE, R.string.edit_style, android.R.drawable.ic_menu_manage);
+		//mMenuHandler.addItem(menu, MNU_EDIT_STYLE, R.string.edit_style, android.R.drawable.ic_menu_manage);
 
 		mMenuHandler.addItem(menu, MNU_EXPAND, R.string.menu_sort_by_author_expanded, R.drawable.ic_menu_expand);
 		mMenuHandler.addItem(menu, MNU_COLLAPSE, R.string.menu_sort_by_author_collapsed, R.drawable.ic_menu_collapse);
 
 		mMenuHandler.addSearchItem(menu);
 
-		mMenuHandler.addCreateHelpItem(menu);
+		mMenuHandler.addCreateHelpAndAdminItems(menu);
 		
 		return super.onPrepareOptionsMenu(menu);
 	}

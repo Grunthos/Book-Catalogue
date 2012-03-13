@@ -77,10 +77,10 @@ import com.eleybourn.bookcatalogue.goodreads.api.ShowBookByIsbnApiHandler;
 /**
  * Class to wrap all GoodReads API calls and manage an API connection.
  * 
- * RELEASE: Add 'send to goodreads'/'update from internet' option in book edit menu
- * RELEASE: Change 'update from internet' to allow source selection and single-book execution
- * RELEASE: Link an Event to a book, and display in book list with exclamation triangle overwriting cover.
- * RELEASE: MAYBE Replace Events with something similar in local DB?
+ * ENHANCE: Add 'send to goodreads'/'update from internet' option in book edit menu
+ * ENHANCE: Change 'update from internet' to allow source selection and single-book execution
+ * ENHANCE: Link an Event to a book, and display in book list with exclamation triangle overwriting cover.
+ * ENHANCE: MAYBE Replace Events with something similar in local DB?
  * 
  * @author Philip Warner
  */
@@ -699,7 +699,9 @@ public class GoodreadsManager {
 			}
 			// Now update the remaining review details.
 			try {
-				this.updateReview(reviewId, books.getRead() != 0, books.getReadEnd(), books.getNotes(), ((int)books.getRating()) );
+				// Do not sync Notes<->Review. We will add a 'Review' field later.
+				//this.updateReview(reviewId, books.getRead() != 0, books.getReadEnd(), books.getNotes(), ((int)books.getRating()) );
+				this.updateReview(reviewId, books.getRead() != 0, books.getReadEnd(), null, ((int)books.getRating()) );
 			} catch (BookNotFoundException e) {
 				return ExportDisposition.error;
 			}

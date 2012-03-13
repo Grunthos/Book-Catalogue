@@ -279,7 +279,8 @@
 <string name="edit_bookElipsis">Edit Book&#8230;</string>
 <string name="retry_task">Retry</string>
 <string name="visit_goodreads">Visit GoodReads&#8230;</string>
-<string name="delete_entry">Delete</string>
+<string name="delete_event">Delete Event</string>
+<string name="delete_task">Delete Task</string>
 <item name="TAG_EVENT" type="id"></item>
 <item name="TAG_HOLDER" type="id"></item>
 <item name="TAG_TASK" type="id"></item>
@@ -287,6 +288,7 @@
 <item name="TAG_BOOK_EVENT_HOLDER" type="id"></item>
 <item name="TAG_TASK_HOLDER" type="id"></item>
 <item name="TAG_PROPERTY" type="id"></item>
+<item name="TAG_DIALOG_ITEM" type="id"></item>
 <string name="my_books">My Books</string>
 <string name="my_books_classic">My Books (Classic)</string>
 <string name="loan_return_book">Loan, Return or Edit Book</string>
@@ -375,6 +377,7 @@
 <item name="ACTIVITY_CREATE_BOOK_SCAN" type="id"/>
 <item name="ACTIVITY_EDIT_BOOK" type="id"/>
 <item name="ACTIVITY_ADMIN" type="id"/>
+<item name="ACTIVITY_HELP" type="id"/>
 <item name="ACTIVITY_PREFERENCES" type="id"/>
 <item name="ACTIVITY_BOOKLIST_STYLE" type="id"/>
 <item name="ACTIVITY_BOOKLIST_STYLE_PROPERTIES" type="id"/>
@@ -529,9 +532,40 @@
 <string name="show_events_ellipsis">Show events&#8230;</string>
 <string name="hint_authors_book_may_appear_more_than_once">If shown for every author, a single book may appear more than once in a list. In such a case deleting one of those books will delete all instances from the list.</string>
 <string name="hint_series_book_may_appear_more_than_once">If shown in every series, a single book may appear more than once in a list. In such a case deleting one of those books will delete all instances from the list.</string>
-<string name="hint_background_tasks">From here you can see the currently running tasks as well as previous tasks that have completed, but with errors or other notable events. 
+<string name="hint_background_tasks">From here you can see the currently running tasks as well as previous tasks that have completed with errors or other notable events. 
     								Clicking on a task will allow you to see the events associated with that task as well as delete the task (and related events).</string>
 <string name="hint_background_task_events">From here you can see the events associated with a background task. 
     								Clicking on a event will allow you to perform a variety of actions appropriate for that event.</string>
+<string name="hints_have_been_reset">Hints have been reset</string>
+<string name="task_has_been_queued_in_background">Task has been queued in background</string>
+<string name="hint_startup_screen">This is the standard BookCatalogue startup screen. If you prefer, you can startup directly in \'My Books\'; the preferred startup screen can be changed in preferences.</string>
+<string name="upgrading_ellipsis">Upgrading&#8230;</string>
+<string name="explain_goodreads_no_isbn">The selected book does not have an ISBN; it is not possible to automatically synchronize it with goodreads. 
+    									The simplest solution is to:
+    									\n\n(1) delete the book from BookCatalogue
+    									\n\n(2) add the book in goodreads manually via their web interface
+    									\n\n(3) Synchronize with goodreads
+    									\n\nThis will result in the book being recreated in BookCatalogue and the two will remain linked from that point onwards.</string>
+<string name="explain_goodreads_no_match">The ISBN of the selected book could not be found on goodreads. There are two possible causes for this: 
+    									either the data for the book is wrong (you should check the ISBN), or the book is not in goodreads. 
+    									\n\nIf you make any changes to the data in BookCatalogue, just press the \'Retry\' button and check to see if the 
+    									resulting background task succeeds. 
+    									\n\nIf the data looks correct and the book is still not found, then a book with that ISBN needs to be added to goodreads manually
+										via their web site. Once that is done, you can retry sending the book.</string>    									    
+<string name="read_amp_unread">Read &amp; Unread</string>
+<string name="loaned">Loaned</string>
+<string name="publication_year">Publication Year</string>
+<string name="publication_month">Publication Month</string>
+<string name="publication_day">Publication Day</string>
+<string name="added_year">Added Year</string>
+<string name="added_month">Added Month</string>
+<string name="added_day">Added Day</string>
+<string name="book">Book</string>
+<string name="in">In</string>
+<string name="size">Size</string>
+<string name="updated">Updated</string>
+<string name="no_export_files_found">No export files found</string>
+<string name="more_than_one_export_file_blah">More than one export file was found; please select an export file to import from the list below</string>
+<string name="problem_starting_import_arg">There was a problem starting the import: %1$s</string>
 </resources>
 

@@ -21,6 +21,7 @@
 package com.eleybourn.bookcatalogue;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,7 +41,9 @@ import android.view.View.OnClickListener;
 import android.widget.Toast;
 
 import com.eleybourn.bookcatalogue.ManagedTask.TaskHandler;
-import com.eleybourn.bookcatalogue.goodreads.GoodreadsExportFailuresActivity;
+import com.eleybourn.bookcatalogue.StandardDialogs.SimpleDialogFileItem;
+import com.eleybourn.bookcatalogue.StandardDialogs.SimpleDialogItem;
+import com.eleybourn.bookcatalogue.StandardDialogs.SimpleDialogOnClickListener;
 import com.eleybourn.bookcatalogue.goodreads.GoodreadsManager;
 import com.eleybourn.bookcatalogue.goodreads.GoodreadsRegister;
 import com.eleybourn.bookcatalogue.goodreads.ImportAllTask;
@@ -61,9 +64,6 @@ public class AdministrationFunctions extends ActivityWithTasks {
 	private CatalogueDBAdapter mDbHelper;
 	//private int importUpdated = 0;
 	//private int importCreated = 0;
-	public static String fileName = Utils.EXTERNAL_FILE_PATH + "/export.csv";
-	public static String UTF8 = "utf8";
-	public static int BUFFER_SIZE = 8192;
 	private ProgressDialog pd = null;
 	private int num = 0;
 	private boolean finish_after = false;
@@ -360,6 +360,7 @@ public class AdministrationFunctions extends ActivityWithTasks {
 			@Override
 			public void onClick(View v) {
 				HintManager.resetHints();
+				Toast.makeText(AdministrationFunctions.this, R.string.hints_have_been_reset, Toast.LENGTH_LONG).show();
 				return;
 			}
 		});
@@ -435,6 +436,7 @@ public class AdministrationFunctions extends ActivityWithTasks {
 			return;
 
 		QueueManager.getQueueManager().enqueueTask(new ImportAllTask(isSync), BcQueueManager.QUEUE_MAIN, 0);
+		Toast.makeText(AdministrationFunctions.this, R.string.task_has_been_queued_in_background, Toast.LENGTH_LONG).show();
 	}
 
 	/**
@@ -486,6 +488,7 @@ public class AdministrationFunctions extends ActivityWithTasks {
 			return;
 
 		QueueManager.getQueueManager().enqueueTask(new SendAllBooksTask(updatesOnly), BcQueueManager.QUEUE_MAIN, 0);
+		Toast.makeText(AdministrationFunctions.this, R.string.task_has_been_queued_in_background, Toast.LENGTH_LONG).show();
 	}
 	
 	/**
@@ -526,40 +529,50 @@ public class AdministrationFunctions extends ActivityWithTasks {
 	}
 
 	/**
-	 * This program reads a text file line by line and print to the console. It uses
-	 * FileOutputStream to read the file.
-	 * 
-	 */
-	public ArrayList<String> readFile() {
-		ArrayList<String> importedString = new ArrayList<String>();
-		
-		try {
-			BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(fileName), UTF8),BUFFER_SIZE);
-			String line = "";
-			while ((line = in.readLine()) != null) {
-				importedString.add(line);
-			}
-			in.close();
-		} catch (FileNotFoundException e) {
-			Toast.makeText(this, R.string.import_failed, Toast.LENGTH_LONG).show();
-			Logger.logError(e);
-		} catch (IOException e) {
-			Toast.makeText(this, R.string.import_failed, Toast.LENGTH_LONG).show();
-			Logger.logError(e);
-		}
-		return importedString;
-	}
-	
-	
-	/**
-	 * Import all data from the CSV file
+	 * Import all data from somewhere on shared storage; ask user to disambiguate if necessary
 	 * 
 	 * return void
 	 */
 	private void importData() {
-		ArrayList<String> export = readFile();
-		ImportThread thread = new ImportThread(mTaskManager, mImportHandler, export);
-		thread.start();		
+		// Find all possible files (CSV in bookCatalogue directory)
+		ArrayList<File> files = StorageUtils.findExportFiles();
+		// If none, exit with message
+		if (files == null || files.size() == 0) {
+			Toast.makeText(this, R.string.no_export_files_found, Toast.LENGTH_LONG).show();
+			return;
+		} else {
+			if (files.size() == 1) {
+				// If only 1, just use it
+				importData(files.get(0).getAbsolutePath());
+			} else {
+				// If more than one, ask user which file
+				// RELEASE: Consider asking about importing cover images.
+				StandardDialogs.selectFileDialog(getLayoutInflater(), getString(R.string.more_than_one_export_file_blah), files, new SimpleDialogOnClickListener() {
+					@Override
+					public void onClick(SimpleDialogItem item) {
+						SimpleDialogFileItem fileItem = (SimpleDialogFileItem) item;
+						importData(fileItem.getFile().getAbsolutePath());
+					}});
+			}				
+		}
+	}
+
+	/**
+	 * Import all data from the passed CSV file spec
+	 * 
+	 * return void
+	 * @throws IOException 
+	 */
+	private void importData(String filespec) {
+		ImportThread thread;
+		try {
+			thread = new ImportThread(mTaskManager, mImportHandler, filespec);
+		} catch (IOException e) {
+			Logger.logError(e);
+			Toast.makeText(this, getString(R.string.problem_starting_import_arg, e.getMessage()), Toast.LENGTH_LONG).show();
+			return;
+		}
+		thread.start();
 	}
 	
 	@Override
