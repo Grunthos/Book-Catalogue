@@ -23,6 +23,7 @@
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.LinkedHashSet;
 
 import android.os.Bundle;
 
@@ -86,6 +87,9 @@ public class SearchManager implements OnTaskEndedListener {
 
 	// List of threads created by *this* object.
 	private ArrayList<ManagedTask> mRunningTasks = new ArrayList<ManagedTask>();
+
+	// A flag to identify if we want a list of books as a search result, not just one
+	private boolean mReturnBookList = false;
 
 	/**
 	 * Task handler for thread management; caller MUST implement this to get
@@ -167,7 +171,7 @@ public class SearchManager implements OnTaskEndedListener {
 	 */
 	private boolean startAmazon() {
 		if (!mCancelledFlg) {
-			startOne( new SearchAmazonThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail) );		
+			startOne( new SearchAmazonThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail, mReturnBookList) );
 			return true;
 		} else {
 			return false;
@@ -179,7 +183,7 @@ public class SearchManager implements OnTaskEndedListener {
 	 */
 	private boolean startGoogle() {
 		if (!mCancelledFlg) {
-			startOne( new SearchGoogleThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail) );		
+			startOne( new SearchGoogleThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail, mReturnBookList) );		
 			return true;
 		} else {
 			return false;			
@@ -190,7 +194,7 @@ public class SearchManager implements OnTaskEndedListener {
 	 */
 	private boolean startLibraryThing(){
 		if (!mCancelledFlg && mIsbn != null && mIsbn.trim().length() > 0) {
-			startOne( new SearchLibraryThingThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail));		
+			startOne( new SearchLibraryThingThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail, mReturnBookList));		
 			return true;
 		} else {
 			return false;
@@ -202,7 +206,7 @@ public class SearchManager implements OnTaskEndedListener {
 	 */
 	private boolean startGoodreads(){
 		if (!mCancelledFlg && mIsbn != null && mIsbn.trim().length() > 0) {
-			startOne( new SearchGoodreadsThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail));		
+			startOne( new SearchGoodreadsThread(mTaskManager, mGenericSearchHandler, mAuthor, mTitle, mIsbn, mFetchThumbnail, mReturnBookList));		
 			return true;
 		} else {
 			return false;			
@@ -216,7 +220,7 @@ public class SearchManager implements OnTaskEndedListener {
 	 * @param title		Title to search for
 	 * @param isbn		ISBN to search for
 	 */
-	public void search(String author, String title, String isbn, boolean fetchThumbnail, int searchFlags) {
+	public void search(String author, String title, String isbn, boolean fetchThumbnail, boolean returnList, int searchFlags) {
 		if ( (searchFlags & SEARCH_ALL) == 0)
 			throw new RuntimeException("Must specify at least one source to use");
 
@@ -237,7 +241,8 @@ public class SearchManager implements OnTaskEndedListener {
 		mAuthor = author;
 		mTitle = title;
 		mIsbn = isbn;
-		mFetchThumbnail = fetchThumbnail;
+		mFetchThumbnail = fetchThumbnail;			
+		mReturnBookList = returnList;
 
 		if (mTaskManager.runningInUiThread()) {
 			doSearch();
@@ -335,65 +340,173 @@ public class SearchManager implements OnTaskEndedListener {
 				}
 			}
 		}
+	}	
+	
+	/**
+	 * Copy data from passed Bundle to current accumulated data.
+	 * 
+	 * @param searchId	Identifier of source
+	 */	
+	private void accumulateLists(int searchId) {		
+		// See if we got data from this source
+		if (!mSearchResults.containsKey(searchId))
+			return;
+
+		Bundle bookData = mSearchResults.get(searchId);
+
+		// See if we REALLY got data from this source
+		if (bookData == null)
+			return;		
+		
+		// Tries to get lists from Bundles
+		ArrayList<Book> l1 = mBookData.containsKey(CatalogueDBAdapter.KEY_BOOKLIST) ? (ArrayList<Book>) mBookData.getSerializable(CatalogueDBAdapter.KEY_BOOKLIST) : null;
+		ArrayList<Book> l2 = bookData.containsKey(CatalogueDBAdapter.KEY_BOOKLIST) ? (ArrayList<Book>) bookData.getSerializable(CatalogueDBAdapter.KEY_BOOKLIST) : null;
+
+		// Put combined lists back to Bundle
+		mBookData.putSerializable(CatalogueDBAdapter.KEY_BOOKLIST, combineArrayLists(l1, l2));
 	}
+	
+	/**
+	 * Combine two lists of books.
+	 * 
+	 * @param l1	First list
+	 * @param l2	Second list
+	 */
+	private ArrayList<Book> combineArrayLists(ArrayList<Book> l1, ArrayList<Book> l2){
+		// TODO: RELEASE: This should probably combine data from 'identical' books
+		
+		// If one of given lists is empty, return the second one
+		if(l1 == null || l1.size() == 0){
+			return l2;
+		}
+		if(l2 == null || l2.size() == 0){
+			return l1;
+		}
+		
+		// Lists are combined through a map, so the result has regular order and duplicates are removed.
+		LinkedHashSet<Book> tmp = new LinkedHashSet<Book>();		
+		int size = Math.max(l1.size(), l2.size());
+		for(int i = 0; i < size; i++){			
+			if(i < l1.size()){
+				final Book b = l1.get(i);
+				if(!tmp.add(b))
+					b.close();
+			}
+			if(i < l2.size()){							
+				final Book b = l1.get(i);
+				if(!tmp.add(b))
+					b.close();
+			}						
+		}		
+		return new ArrayList<Book>(tmp);
+	}
+
+	/**
+	 * Proper list of books form Bundle.
+	 */	
+	// XXXX: TODO: RELEASE: Need to centralize book data cleanup; duplicating the 'properCase' stuff etc is going to lead to long term maintenance problems.
+	private void properBookList(){		
+		ArrayList<Book> list = (ArrayList<Book>) mBookData.getSerializable(CatalogueDBAdapter.KEY_BOOKLIST);		
+		for(Book book : list){
+			try {
+				// Decode the collected author names and convert to an ArrayList
+				book.setAUTHOR_ARRAY(Utils.getAuthorUtils().decodeList(book.getAUTHOR(), '|', false));
+				// Decode the collected series names and convert to an ArrayList
+				try {
+					book.setSERIES_ARRAY(Utils.getSeriesUtils().decodeList(book.getSERIES_NAME(), '|', false));
+				} catch (Exception e) {
+					Logger.logError(e);
+				}			
+				book.setTITLE(Utils.properCase(book.getTITLE()));
+				book.setPUBLISHER(Utils.properCase(book.getPUBLISHER()));
+				book.setDATE_PUBLISHED(Utils.properCase(book.getDATE_PUBLISHED()));
+				book.setSERIES_NAME(Utils.properCase(book.getSERIES_NAME()));	
+			} catch (Exception e) {}
+		}				
+	}	
 
 	/**
 	 * Combine all the data and create a book or display an error.
 	 */
 	private void finish() {
-		// Merge the data we have. We do this in a fixed order rather than as the threads finish.
-		for(int i: mSearchPriority)
-			accumulateData(i);
-		
-		// If there are thumbnails present, pick the biggest, delete others and rename.
-		Utils.cleanupThumbnails(mBookData);
-		
-		// If book is not found, just return to dialog.
-		String authors = null;
-		String title = null;
-		try {
-			authors = mBookData.getString(CatalogueDBAdapter.KEY_AUTHOR_DETAILS);
-		} catch (Exception e) {}
-		try {
-			title = mBookData.getString(CatalogueDBAdapter.KEY_TITLE);
-		} catch (Exception e) {}
-		if (authors == null || authors.length() == 0 || title == null || title.length() == 0) {
-			
-			mTaskManager.doToast(mTaskManager.getString(R.string.book_not_found));
-			mBookData.putString(CatalogueDBAdapter.KEY_ISBN, mIsbn);
-			mBookData.putString(CatalogueDBAdapter.KEY_TITLE, mTitle);
-			ArrayList<Author> aa = Utils.getAuthorUtils().decodeList(mAuthor, '|', false);
-			mBookData.putSerializable(CatalogueDBAdapter.KEY_AUTHOR_ARRAY, aa);
-			//add series to stop crashing
-			ArrayList<Series> sa = Utils.getSeriesUtils().decodeList("", '|', false);
-			mBookData.putSerializable(CatalogueDBAdapter.KEY_SERIES_ARRAY, sa);
-			if (mSearchHandler != null) {
-				mSearchHandler.onSearchFinished(mBookData, mCancelledFlg);
-			}
+		if(!mReturnBookList){
+			// Merge the data we have. We do this in a fixed order rather than as the threads finish.
+			for(int i: mSearchPriority)
+				accumulateData(i);
 
-		} else {
-			Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_TITLE);
-			Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_PUBLISHER);
-			Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_DATE_PUBLISHED);
-			Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_SERIES_NAME);
-			
-			// Decode the collected author names and convert to an ArrayList
-			ArrayList<Author> aa = Utils.getAuthorUtils().decodeList(authors, '|', false);
-			mBookData.putSerializable(CatalogueDBAdapter.KEY_AUTHOR_ARRAY, aa);
-			
-			// Decode the collected series names and convert to an ArrayList
+			// If there are thumbnails present, pick the biggest, delete others and rename.
+			Utils.cleanupThumbnails(mBookData);
+
+			// If book is not found, just return to dialog.
+			String authors = null;
+			String title = null;
 			try {
-				String series = mBookData.getString(CatalogueDBAdapter.KEY_SERIES_DETAILS);
-				ArrayList<Series> sa = Utils.getSeriesUtils().decodeList(series, '|', false);
-				mBookData.putSerializable(CatalogueDBAdapter.KEY_SERIES_ARRAY, sa);
-			} catch (Exception e) {
-				Logger.logError(e);
+				authors = mBookData.getString(CatalogueDBAdapter.KEY_AUTHOR_DETAILS);
+			} catch (Exception e) {}
+			try {
+				title = mBookData.getString(CatalogueDBAdapter.KEY_TITLE);
+			} catch (Exception e) {}
+			if (authors == null || authors.length() == 0 || title == null || title.length() == 0) {				
+				bookNotFound();
+			} else {
+				Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_TITLE);
+				Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_PUBLISHER);
+				Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_DATE_PUBLISHED);
+				Utils.doProperCase(mBookData, CatalogueDBAdapter.KEY_SERIES_NAME);
+				
+				// Decode the collected author names and convert to an ArrayList
+				ArrayList<Author> aa = Utils.getAuthorUtils().decodeList(authors, '|', false);
+				mBookData.putSerializable(CatalogueDBAdapter.KEY_AUTHOR_ARRAY, aa);
+
+				// Decode the collected series names and convert to an ArrayList
+				try {
+					String series = mBookData.getString(CatalogueDBAdapter.KEY_SERIES_DETAILS);
+					ArrayList<Series> sa = Utils.getSeriesUtils().decodeList(series, '|', false);
+					mBookData.putSerializable(CatalogueDBAdapter.KEY_SERIES_ARRAY, sa);
+				} catch (Exception e) {
+					Logger.logError(e);
+				}
 			}
-			if (mSearchHandler != null)
-				mSearchHandler.onSearchFinished(mBookData, mCancelledFlg);
+		}else{
+			for(int i: mSearchPriority)
+				accumulateLists(i);									
+
+			ArrayList<Book> books;
+			if (mBookData.containsKey(CatalogueDBAdapter.KEY_BOOKLIST))
+				books = (ArrayList<Book>) mBookData.getSerializable(CatalogueDBAdapter.KEY_BOOKLIST);
+			else
+				books = null;
+
+			if(books == null || books.size() == 0){
+				mBookData.remove(CatalogueDBAdapter.KEY_BOOKLIST);
+				bookNotFound();
+			}else{			
+				properBookList();
+			}			
 		}
+
+		if (mSearchHandler != null)
+			mSearchHandler.onSearchFinished(mBookData, mCancelledFlg);
+
 		mFinished = true;
 	}
+		
+	/**
+	 * Called when book was not found.
+	 */	
+	private void bookNotFound(){
+		mTaskManager.doToast(mTaskManager.getString(R.string.book_not_found));
+		mBookData.putString(CatalogueDBAdapter.KEY_ISBN, mIsbn);
+		mBookData.putString(CatalogueDBAdapter.KEY_TITLE, mTitle);
+		ArrayList<Author> aa = Utils.getAuthorUtils().decodeList(mAuthor, '|', false);
+		mBookData.putSerializable(CatalogueDBAdapter.KEY_AUTHOR_ARRAY, aa);
+		//add series to stop crashing
+		ArrayList<Series> sa = Utils.getSeriesUtils().decodeList("", '|', false);
+		mBookData.putSerializable(CatalogueDBAdapter.KEY_SERIES_ARRAY, sa);
+		if (mSearchHandler != null) {
+			mSearchHandler.onSearchFinished(mBookData, mCancelledFlg);
+		}		
+	}	
 
 	/**
 	 * When running in single-stream mode, start the next thread that has no data.

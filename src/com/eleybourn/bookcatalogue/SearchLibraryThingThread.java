@@ -4,8 +4,8 @@ package com.eleybourn.bookcatalogue;
 public class SearchLibraryThingThread extends SearchThread {
 
 	public SearchLibraryThingThread(TaskManager manager,
-			TaskHandler taskHandler, String author, String title, String isbn, boolean fetchThumbnail) {
-		super(manager, taskHandler, author, title, isbn, fetchThumbnail);
+			TaskHandler taskHandler, String author, String title, String isbn, boolean fetchThumbnail, boolean returnBookList) {
+		super(manager, taskHandler, author, title, isbn, fetchThumbnail, returnBookList);
 	}
 
 	@Override

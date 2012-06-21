@@ -21,22 +21,22 @@ public class AmazonManager {
 	 * @param mIsbn The ISBN to search for
 	 * @return The book array
 	 */
-	static public void searchAmazon(String mIsbn, String mAuthor, String mTitle, Bundle bookData, boolean fetchThumbnail) {
+	static public void searchAmazon(String isbn, String author, String title, Bundle bookData, boolean fetchThumbnail, boolean resultsInList) {
 		//replace spaces with %20
-		mAuthor = mAuthor.replace(" ", "%20");
-		mTitle = mTitle.replace(" ", "%20");
-		
+		author = author.replace(" ", "%20");
+		title = title.replace(" ", "%20");
+
 		String path = "http://theagiledirector.com/getRest_v3.php";
-		if (mIsbn.equals("")) {
-			path += "?author=" + mAuthor + "&title=" + mTitle;
+		if (isbn.equals("")) {
+			path += "?author=" + author + "&title=" + title;
 		} else {
-			path += "?isbn=" + mIsbn;
+			path += "?isbn=" + isbn;
 		}
 		URL url;
 		
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		SAXParser parser;
-		SearchAmazonHandler handler = new SearchAmazonHandler(bookData, fetchThumbnail);
+		SearchAmazonHandler handler = new SearchAmazonHandler(bookData, fetchThumbnail, resultsInList);
 
 		try {
 			url = new URL(path);

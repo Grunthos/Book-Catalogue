@@ -780,7 +780,7 @@ public class BookEditFields extends Activity {
 				if (extras.containsKey("book")) {
 					throw new RuntimeException("[book] array passed in Intent");
 				} else {
-					Bundle values = (Bundle)extras.getParcelable("bookData");
+					Bundle values = (Bundle)extras.getParcelable(BookEdit.KEY_BOOK_DATA);
 					Iterator<Fields.Field> i = mFields.iterator();
 					while(i.hasNext()) {
 						Fields.Field f = i.next();

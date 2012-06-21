@@ -20,14 +20,14 @@
 
 package com.eleybourn.bookcatalogue;
 
-import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -448,6 +448,18 @@ public class Utils {
 	 * @return	Downloaded filespec
 	 */
 	static public String saveThumbnailFromUrl(String urlText, String filenameSuffix) {
+		return saveThumbnailFromUrl(urlText, CatalogueDBAdapter.getTempThumbnail(filenameSuffix));
+	}
+
+	/**
+	 * Given a URL, get an image and save to a file, optionally appending a suffic to the file.
+	 * 
+	 * @param urlText			Image file URL
+	 * @param file				Full file spec to save file
+	 *
+	 * @return	Downloaded filespec
+	 */
+	static public String saveThumbnailFromUrl(String urlText, File file) {
 		URL u;
 		try {
 			u = new URL(urlText);
@@ -488,7 +500,6 @@ public class Utils {
 		String filename = "";
 		FileOutputStream f = null;
 		try {
-			File file = CatalogueDBAdapter.getTempThumbnail(filenameSuffix);
 			filename = file.getAbsolutePath();
 			f = new FileOutputStream(filename);
 		} catch (FileNotFoundException e) {
@@ -692,6 +703,29 @@ public class Utils {
     		result.putBoolean(CatalogueDBAdapter.KEY_THUMBNAIL, true);
     	}
 	}
+
+	/**
+	 * Make copy of source file to target file.
+	 * 
+	 * @param f1	Source
+	 * @param f2	Target
+	 */	    
+	public static void copyFile(File f1, File f2){
+		try{			
+			InputStream in = new FileInputStream(f1);
+			OutputStream out = new FileOutputStream(f2);	
+			byte[] buf = new byte[1024];
+			int len;
+			while ((len = in.read(buf)) > 0){
+				out.write(buf, 0, len);
+			}
+			in.close();
+			out.close();
+		}
+		catch(Exception ex){
+			//nothing
+		}
+	}	
 
 	/**
 	 * Convert text at specified key to proper case.

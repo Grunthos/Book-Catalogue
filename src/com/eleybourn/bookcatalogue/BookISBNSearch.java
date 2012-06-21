@@ -34,6 +34,8 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -244,6 +246,16 @@ public class BookISBNSearch extends ActivityWithTasks {
 			mAuthorText = (AutoCompleteTextView) findViewById(R.id.author);
 			mAuthorText.setAdapter(author_adapter);
 
+			CheckBox listCb = (CheckBox) findViewById(R.id.showResultsInList);
+
+			listCb.setOnCheckedChangeListener(new OnCheckedChangeListener(){
+			    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked){
+			        if(isChecked){
+			        	displayListHint();
+			        }
+			    }
+			});
+
 			mTitleText = (EditText) findViewById(R.id.title);
 			mConfirmButton = (Button) findViewById(R.id.search);
 
@@ -308,6 +320,13 @@ public class BookISBNSearch extends ActivityWithTasks {
 				return;
 			}
 		}
+	}
+
+	/*
+	 * Display hint about showing search results in list.
+	 */	
+	private void displayListHint(){
+		HintManager.displayHint(this, R.string.hint_show_search_results_in_list, null);
 	}
 
 	/*
@@ -477,8 +496,12 @@ public class BookISBNSearch extends ActivityWithTasks {
 			try {
 				// Start the lookup in background.
 				//mTaskManager.doProgress("Searching");
-				mSearchManager = new SearchManager(mTaskManager, mSearchHandler);
-				mSearchManager.search(mAuthor, mTitle, mIsbn, true, SearchManager.SEARCH_ALL);
+				mSearchManager = new SearchManager(mTaskManager, mSearchHandler);							
+
+				final CheckBox listCb = (CheckBox) findViewById(R.id.showResultsInList);
+				final boolean wantList = (listCb != null && listCb.isChecked());
+				mSearchManager.search(mAuthor, mTitle, mIsbn, true, wantList, SearchManager.SEARCH_ALL);					
+
 				// reset the details so we don't restart the search unnecessarily
 				mAuthor = "";
 				mTitle = "";
@@ -510,8 +533,13 @@ public class BookISBNSearch extends ActivityWithTasks {
 			if (mMode == MODE_SCAN)
 				startScannerActivity();
 		} else {
-			mTaskManager.doProgress("Adding Book...");
-			createBook(bookData);
+			if (bookData.containsKey(CatalogueDBAdapter.KEY_BOOKLIST) ) {
+				mTaskManager.doProgress("Preparing results...");				
+				SearchResultList.showSearchResults(this, bookData);
+			} else {
+				mTaskManager.doProgress("Adding Book...");
+				createBook(bookData);
+			}
 			// Clear the data entry fields ready for the next one
 			clearFields();
 			// Make sure the message will be empty.
@@ -569,7 +597,7 @@ public class BookISBNSearch extends ActivityWithTasks {
 	 */
 	private void createBook(Bundle book) {
 		Intent i = new Intent(this, BookEdit.class);
-		i.putExtra("bookData", book);
+		i.putExtra(BookEdit.KEY_BOOK_DATA, book);
 		startActivityForResult(i, R.id.ACTIVITY_EDIT_BOOK);
 		//dismissProgress();
 	}
@@ -616,6 +644,15 @@ public class BookISBNSearch extends ActivityWithTasks {
 				this.setResult(RESULT_CANCELED, mLastBookIntent);
 
 			break;
+
+		case R.id.ACTIVITY_SEARCH_RESULT_LIST: 
+			if (intent != null)
+				mLastBookIntent = intent;
+
+			// If the 'Back' button is pressed on a normal activity, set the default result to cancelled by setting it here.
+			this.setResult(RESULT_CANCELED, mLastBookIntent);
+
+			break;						
 		}
 	}
 

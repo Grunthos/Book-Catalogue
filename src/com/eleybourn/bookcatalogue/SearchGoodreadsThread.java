@@ -44,10 +44,11 @@ public class SearchGoodreadsThread extends SearchThread {
 	 * @param fetchThumbnail
 	 */
 	public SearchGoodreadsThread(TaskManager manager,
-			TaskHandler taskHandler, String author, String title, String isbn, boolean fetchThumbnail) {
-		super(manager, taskHandler, author, title, isbn, fetchThumbnail);
+			TaskHandler taskHandler, String author, String title, String isbn, boolean fetchThumbnail, boolean returnBookList) {
+		super(manager, taskHandler, author, title, isbn, fetchThumbnail, returnBookList);
 	}
 
+	// XXXX: RELEASE: Complete support for returning a list of books
 	@Override
 	protected void onRun() {
 		//

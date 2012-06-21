@@ -124,6 +124,9 @@ public class CatalogueDBAdapter {
 	public static final String KEY_DESCRIPTION = "description";
 	public static final String KEY_GENRE = "genre";
 	public static final String KEY_DATE_ADDED = "date_added";
+
+	// Note really field in database, but used as a key in a Bundle:
+	public static final String KEY_BOOKLIST = "book_list";
 	
 	public static final String KEY_AUTHOR_FORMATTED = "author_formatted";
 	public static final String KEY_AUTHOR_FORMATTED_GIVEN_FIRST = "author_formatted_given_first";

@@ -32,6 +32,7 @@ abstract public class SearchThread extends ManagedTask {
 	protected String mTitle;
 	protected String mIsbn;
 	protected static boolean mFetchThumbnail;
+	protected final boolean mReturnBookList;
 
 	// Accumulated book info.
 	protected Bundle mBookData = new Bundle();
@@ -46,12 +47,13 @@ abstract public class SearchThread extends ManagedTask {
 	 * @param title			Title to search for
 	 * @param isbn			ISBN to search for.
 	 */
-	public SearchThread(TaskManager manager, TaskHandler taskHandler, String author, String title, String isbn, boolean fetchThumbnail) {
+	public SearchThread(TaskManager manager, TaskHandler taskHandler, String author, String title, String isbn, boolean fetchThumbnail, boolean returnBookList) {
 		super(manager, taskHandler);
 		mAuthor = author;
 		mTitle = title;
 		mIsbn = isbn;
 		mFetchThumbnail = fetchThumbnail;
+		mReturnBookList = returnBookList;
 
 		//mBookData.putString(CatalogueDBAdapter.KEY_AUTHOR_FORMATTED, mAuthor);
 		//mBookData.putString(CatalogueDBAdapter.KEY_TITLE, mTitle);

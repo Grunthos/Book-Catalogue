@@ -20,6 +20,8 @@
 
 package com.eleybourn.bookcatalogue;
 
+import java.util.ArrayList;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -163,7 +165,8 @@ import android.os.Bundle;
  * 
  */
 public class SearchAmazonHandler extends DefaultHandler {
-	private Bundle mBookData;
+	private Bundle mOrigBookData;	// Data passed to initial call -- it is probably empty, but may not be.
+	private Bundle mBookData;		// Working data used for current book entry
 	private StringBuilder mBuilder;
 	private String mThumbnailUrl = "";
 	private int mThumbnailSize = -1;
@@ -176,6 +179,11 @@ public class SearchAmazonHandler extends DefaultHandler {
 	private boolean image = false;
 	private boolean done = false;
 	
+	/* A flag to identify if we want to show books in the list*/
+	private final boolean mShowResultsInList;
+		
+	private ArrayList<Book> mBookList;	
+
 	/* The XML element names */
 	public static String ID = "id";
 	public static String TOTALRESULTS = "TotalResults";
@@ -193,9 +201,10 @@ public class SearchAmazonHandler extends DefaultHandler {
 	public static String LARGEIMAGE = "LargeImage";
 	public static String DESCRIPTION = "Content";
 
-	SearchAmazonHandler(Bundle bookData, boolean fetchThumbnail) {
-		mBookData = bookData;
+	SearchAmazonHandler(Bundle bookData, boolean fetchThumbnail, boolean showResultsInList) {
+		mOrigBookData = bookData;
 		mFetchThumbnail = fetchThumbnail;
+		mShowResultsInList = showResultsInList;
 	}
 //	/*
 //	 * A public function the return a book structure
@@ -235,15 +244,21 @@ public class SearchAmazonHandler extends DefaultHandler {
 	}
 
 	/**
-	 * 	Overridden method to get the best thumbnail, if present.
+	 * 	Overridden method to get the best thumbnail, if present. 
+	 *  If the user want to show books in the list, put list to bundle.
+	 * 
 	 */
 	@Override
 	public void endDocument() {
-		if (mFetchThumbnail && mThumbnailUrl.length() > 0) {
-			String filename = Utils.saveThumbnailFromUrl(mThumbnailUrl, "_AM");
-			if (filename.length() > 0)
-				Utils.appendOrAdd(mBookData, "__thumbnail", filename);			
-		}		
+		if(mShowResultsInList){
+			mBookData.putSerializable(CatalogueDBAdapter.KEY_BOOKLIST, mBookList);
+		}else{
+			if (mFetchThumbnail && mThumbnailUrl.length() > 0) {
+				String filename = Utils.saveThumbnailFromUrl(mThumbnailUrl, "_AM");
+				if (filename.length() > 0)
+					Utils.appendOrAdd(mBookData, "__thumbnail", filename);			
+			}		
+		}
 	}
 
 	/*
@@ -265,8 +280,16 @@ public class SearchAmazonHandler extends DefaultHandler {
 					image = false;
 				}
 			} else if (localName.equalsIgnoreCase(ENTRY)){
-				done = true;
 				entry = false;
+				if (!mShowResultsInList) {
+					done = true;
+				} else {
+					Book b = new Book(mBookData);
+					if (mThumbnailUrl != null && !mThumbnailUrl.equals("") ) {
+						b.getThumbnailFromUrl(mThumbnailUrl);
+					}
+					mBookList.add(b);
+				}
 			} else if (entry == true) {
 				if (localName.equalsIgnoreCase(AUTHOR)){
 					Utils.appendOrAdd(mBookData, CatalogueDBAdapter.KEY_AUTHOR_DETAILS, mBuilder.toString());
@@ -310,6 +333,9 @@ public class SearchAmazonHandler extends DefaultHandler {
 	public void startDocument() throws SAXException {
 		super.startDocument();
 		mBuilder = new StringBuilder();
+		if (mShowResultsInList){
+			mBookList = new ArrayList<Book>();
+		}
 	}
 
 	/*
@@ -323,6 +349,9 @@ public class SearchAmazonHandler extends DefaultHandler {
 		super.startElement(uri, localName, name, attributes);
 		if (done == false && localName.equalsIgnoreCase(ENTRY)){
 			entry = true;
+			mBookData = (Bundle)mOrigBookData.clone();
+			mThumbnailUrl = "";
+			mThumbnailSize = -1;
 		} else if (localName.equalsIgnoreCase(SMALLIMAGE)) {
 			if (mThumbnailSize < 1) {
 				image = true;

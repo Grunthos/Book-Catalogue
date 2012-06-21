@@ -43,6 +43,8 @@ import android.widget.Toast;
  * @author Evan Leybourn
  */
 public class BookEdit extends TabActivity {
+	public static final String KEY_BOOK_DATA = "book_data";
+
 	public static final String TAB = "tab";
 	public static final int TAB_EDIT = 0;
 	public static final int TAB_EDIT_NOTES = 1;
@@ -288,7 +290,7 @@ public class BookEdit extends TabActivity {
 					book.putSerializable(CatalogueDBAdapter.KEY_AUTHOR_ARRAY, mDbHelper.getBookAuthorList(mRowId));
 					book.putSerializable(CatalogueDBAdapter.KEY_SERIES_ARRAY, mDbHelper.getBookSeriesList(mRowId));
 					
-					i.putExtra("bookData", book);
+					i.putExtra(KEY_BOOK_DATA, book);
 					startActivityForResult(i, DUPLICATE_ID);
 				} catch (CursorIndexOutOfBoundsException e) {
 					Toast.makeText(this, R.string.unknown_error, Toast.LENGTH_LONG).show();

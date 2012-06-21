@@ -600,5 +600,8 @@
 <string name="enter_isbn">Enter ISBN</string>
 <string name="allow_asin">Allow ASIN</string>
 <string name="x_is_not_a_valid_isbn_or_asin">%1$s is not a valid ISBN or ASIN</string>
+<string name="show_search_results_in_list">Show search results in the list</string>
+<string name="hint_show_search_results_in_list">This feature can take some time. In the current version of the application, books will be searched only on Amazon and Google Books.</string>
+<item type="id" name="ACTIVITY_SEARCH_RESULT_LIST"></item>
 </resources>
 
