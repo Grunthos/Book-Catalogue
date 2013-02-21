@@ -2,6 +2,7 @@ package com.eleybourn.bookcatalogue.filechooser;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -9,6 +10,7 @@ import java.util.Comparator;
 import android.app.Activity;
 
 import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper.FileWrapperFilter;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.FragmentTask;
@@ -20,7 +22,7 @@ import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.Fragmen
  */
 public abstract class FileLister implements FragmentTask {
 	protected ArrayList<FileDetails> dirs;
-	protected File mRoot;
+	protected FileWrapper mRoot;
 
 	/**
 	 * Interface for the creating activity to allow the resulting list to be returned.
@@ -28,7 +30,7 @@ public abstract class FileLister implements FragmentTask {
 	 * @author pjw
 	 */
 	public interface FileListerListener {
-		public void onGotFileList(File root, ArrayList<FileDetails> list);
+		public void onGotFileList(FileWrapper root, ArrayList<FileDetails> list);
 	}
 
 	/**
@@ -36,19 +38,19 @@ public abstract class FileLister implements FragmentTask {
 	 * 
 	 * @param root
 	 */
-	public FileLister(File root) {
+	public FileLister(FileWrapper root) {
 		mRoot = root;
 	}
 
 	/** Return a FileFilter appropriate to the types of files being listed */
-	protected abstract FileFilter getFilter();
+	protected abstract FileWrapperFilter getFilter();
 	/** Turn an array of Files into an ArrayList of FileDetails. */
-	protected abstract ArrayList<FileDetails> processList(File[] files);
+	protected abstract ArrayList<FileDetails> processList(FileWrapper[] files);
 
 	@Override
-	public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) {
+	public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws IOException {
 		// Get a file list
-		File[] files = mRoot.listFiles(getFilter());
+		FileWrapper[] files = mRoot.listFiles(getFilter());
 		// Filter/fill-in using the subclass
 		dirs = processList(files);
 		// Sort it
@@ -69,7 +71,11 @@ public abstract class FileLister implements FragmentTask {
 	 */
 	private static class FileDetailsComparator implements Comparator<FileDetails> {
 		public int compare(FileDetails f1, FileDetails f2) {
-			return f1.getFile().getName().toUpperCase().compareTo(f2.getFile().getName().toUpperCase());
+			try {
+				return f1.getFile().getName().toUpperCase().compareTo(f2.getFile().getName().toUpperCase());
+			} catch (IOException e) {
+				return 0;
+			}
 		}
 	}
 

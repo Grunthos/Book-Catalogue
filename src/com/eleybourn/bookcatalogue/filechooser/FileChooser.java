@@ -20,6 +20,7 @@
 package com.eleybourn.bookcatalogue.filechooser;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -37,7 +38,10 @@ import com.eleybourn.bookcatalogue.compat.BookCatalogueActivity;
 import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
 import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.PathChangedListener;
 import com.eleybourn.bookcatalogue.filechooser.FileLister.FileListerListener;
+import com.eleybourn.bookcatalogue.utils.Logger;
+import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
+import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.FragmentTask;
 
 /**
  * Base class for an Activity to perform file browsing functions consistent with
@@ -78,8 +82,9 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 		return mIsSaveDialog;
 	}
 
-	/** Create the fragment we display */
-	protected abstract FileChooserFragment getChooserFragment();
+	/** Create the fragment we display 
+	 * @throws IOException */
+	protected abstract FileChooserFragment getChooserFragment() throws IOException;
 
 	/**
 	 * Initialize this activity
@@ -105,7 +110,15 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 		FragmentManager fragmentManager = getSupportFragmentManager();
 		if (findViewById(R.id.browser_fragment) != null && fragmentManager.findFragmentById(R.id.browser_fragment) == null) {
 			// Create the browser
-			FileChooserFragment frag = getChooserFragment();
+			FileChooserFragment frag;
+			try {
+				frag = getChooserFragment();
+			} catch (IOException e) {
+				Logger.logError(e);
+				Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
+				finish();
+				return;
+			}
 			// frag.setArguments(getIntent().getExtras());
 			getSupportFragmentManager().beginTransaction().replace(R.id.browser_fragment, frag).commit();
 		}
@@ -148,7 +161,7 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * @param file
 	 *            Selected file
 	 */
-	protected abstract void onOpen(File file);
+	protected abstract void onOpen(FileWrapper file);
 
 	/**
 	 * Implemented by subclass to handle a click on the 'Save' button
@@ -156,7 +169,7 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * @param file
 	 *            Selected file
 	 */
-	protected abstract void onSave(File file);
+	protected abstract void onSave(FileWrapper file);
 
 	/**
 	 * Local handler for 'Open'. Perform basic validation, and pass on.
@@ -165,8 +178,24 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 		Fragment frag = getSupportFragmentManager().findFragmentById(R.id.browser_fragment);
 		if (frag instanceof FileChooserFragment) {
 			FileChooserFragment bf = (FileChooserFragment) frag;
-			File file = bf.getSelectedFile();
-			if (file == null || !file.exists() || !file.isFile()) {
+			FileWrapper file;
+			boolean exists;
+			boolean isFile;
+			try {
+				file = bf.getSelectedFile();
+				if (file != null) {
+					exists = file.exists();
+					isFile = file.isFile();
+				} else {
+					exists = false;
+					isFile = false;
+				}
+			} catch (IOException e) {
+				Logger.logError(e);
+				Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
+				return;
+			}
+			if (file == null || !exists || !isFile) {
 				Toast.makeText(this, R.string.please_select_an_existing_file, Toast.LENGTH_LONG).show();
 				return;
 			}
@@ -174,27 +203,60 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 		}
 	}
 
+	FragmentTask mSaveTask = new FragmentTask() {
+		private boolean mDoSave = false;
+		private FileWrapper mFile;
+	
+		@Override
+		public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws Exception {
+			Fragment frag = getSupportFragmentManager().findFragmentById(R.id.browser_fragment);
+			if (frag instanceof FileChooserFragment) {
+				FileChooserFragment bf = (FileChooserFragment) frag;
+				
+				boolean exists;
+				boolean isFile;
+				try {
+					mFile = bf.getSelectedFile();
+					if (mFile != null) {
+						exists = mFile.exists();
+						isFile = mFile.isFile();
+					} else {
+						exists = false;
+						isFile = false;
+					}
+				} catch (IOException e) {
+					Logger.logError(e);
+					fragment.showToast(R.string.unexpected_error);
+					return;
+				}
+				
+				if (mFile == null || (exists && !isFile) ) {
+					fragment.showToast(R.string.please_select_a_non_directory);
+					return;
+				}
+				mDoSave = true;
+			}
+
+		}
+
+		@Override
+		public void onFinish(SimpleTaskQueueProgressFragment fragment, Exception exception) {
+			if (mDoSave)
+				onSave(mFile);
+		}};
+	
 	/**
 	 * Local handler for 'Save'. Perform basic validation, and pass on.
 	 */
 	private void handleSave() {
-		Fragment frag = getSupportFragmentManager().findFragmentById(R.id.browser_fragment);
-		if (frag instanceof FileChooserFragment) {
-			FileChooserFragment bf = (FileChooserFragment) frag;
-			File file = bf.getSelectedFile();
-			if (file == null || (file.exists() && !file.isFile()) ) {
-				Toast.makeText(this, R.string.please_select_a_non_directory, Toast.LENGTH_LONG).show();
-				return;
-			}
-			onSave(file);
-		}
+		SimpleTaskQueueProgressFragment.runTaskWithProgress(this, R.string.save, mSaveTask, true, 0);
 	}
 
 	/**
 	 * Called by lister fragment to pass on the list of files.
 	 */
 	@Override
-	public void onGotFileList(File root, ArrayList<FileDetails> list) {
+	public void onGotFileList(FileWrapper root, ArrayList<FileDetails> list) {
 		FragmentManager fragmentManager = getSupportFragmentManager();
 		Fragment frag = fragmentManager.findFragmentById(R.id.browser_fragment);
 		if (frag != null && frag instanceof FileListerListener) {
@@ -207,7 +269,7 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * @param root
 	 * @return
 	 */
-	public abstract FileLister getFileLister(File root);
+	public abstract FileLister getFileLister(FileWrapper root);
 	
 	/**
 	 * Rebuild the file list in background; gather whatever data is necessary to
@@ -215,8 +277,20 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * 
 	 * @param root
 	 */
-	public void onPathChanged(File root) {
-		if (root == null || !root.isDirectory())
+	public void onPathChanged(FileWrapper root) {
+		if (root == null)
+			return;
+
+		boolean isDir;
+		try {
+			isDir = root.isDirectory();
+		} catch (IOException e) {
+			Logger.logError(e);
+			Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
+			return;
+		}
+
+		if (!isDir)
 			return;
 
 		// Create the background task

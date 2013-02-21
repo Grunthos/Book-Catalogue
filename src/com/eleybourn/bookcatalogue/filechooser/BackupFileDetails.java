@@ -1,6 +1,7 @@
 package com.eleybourn.bookcatalogue.filechooser;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
 
@@ -14,6 +15,7 @@ import android.widget.TextView;
 import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.backup.BackupInfo;
 import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
+import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.Utils;
 
 /**
@@ -26,7 +28,7 @@ public class BackupFileDetails implements FileDetails {
 	// must also be modified.
 	
 	/** File for this item */
-	private File mFile;
+	private FileWrapper mFile;
 	/** The BackupInfo we use when displaying the object */
 	private BackupInfo mInfo;
 
@@ -35,7 +37,7 @@ public class BackupFileDetails implements FileDetails {
 	 * 
 	 * @param file
 	 */
-	public BackupFileDetails(File file) {
+	public BackupFileDetails(FileWrapper file) {
 		mFile = file;
 	}
 
@@ -49,7 +51,7 @@ public class BackupFileDetails implements FileDetails {
 	}
 
 	@Override
-	public File getFile() {
+	public FileWrapper getFile() {
 		return mFile;
 	}
 
@@ -68,16 +70,33 @@ public class BackupFileDetails implements FileDetails {
 	 */
 	@Override
 	public void onSetupView(Context c, int position, View target) {
+		String fileName;
+		boolean isDir;
+		long length = 0;
+		long modDate = 0;
 
+		try {
+			fileName = mFile.getName();
+			isDir = mFile.isDirectory();
+			if (!isDir) {
+				length = mFile.getLength();
+				modDate = mFile.getLastModified();
+			}
+		} catch (IOException e) {
+			Logger.logError(e);
+			fileName = c.getString(R.string.unexpected_error);
+			isDir = false;
+		}
+		
 		// Set the basic data
 		TextView name = (TextView)target.findViewById(R.id.name);
-		name.setText(mFile.getName());
+		name.setText(fileName);
 		TextView date = (TextView)target.findViewById(R.id.date);
 		ImageView image = (ImageView)target.findViewById(R.id.icon);
 		TextView details = (TextView)target.findViewById(R.id.details);
 		
 		// For directories, hide the extra data
-		if (mFile.isDirectory()) {
+		if (isDir) {
 			date.setVisibility(View.GONE);
 			details.setVisibility(View.GONE);
 			image.setImageDrawable(c.getResources().getDrawable(R.drawable.ic_closed_folder));
@@ -88,9 +107,9 @@ public class BackupFileDetails implements FileDetails {
 			if (mInfo != null) {
 				details.setVisibility(View.VISIBLE);
 				details.setText(mInfo.getBookCount() + " books");	
-				date.setText(Utils.formatFileSize(mFile.length()) + ",  " + DateFormat.getDateTimeInstance().format(mInfo.getCreateDate()));
+				date.setText(Utils.formatFileSize(length) + ",  " + DateFormat.getDateTimeInstance().format(mInfo.getCreateDate()));
 			} else {
-				date.setText(Utils.formatFileSize(mFile.length()) + ",  " + DateFormat.getDateTimeInstance().format(new Date(mFile.lastModified())));
+				date.setText(Utils.formatFileSize(length) + ",  " + DateFormat.getDateTimeInstance().format(new Date(modDate)));
 				details.setVisibility(View.GONE);
 			}
 		}
@@ -128,7 +147,7 @@ public class BackupFileDetails implements FileDetails {
 	 * Constructor, using a Parcel as source.
 	 */
 	private BackupFileDetails(Parcel in) {
-		mFile = (File) in.readSerializable();
+		mFile = (FileWrapper) in.readSerializable();
 		byte infoFlag = in.readByte();
 		if (infoFlag != (byte)0) {
 			mInfo = new BackupInfo(in.readBundle());

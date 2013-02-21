@@ -25,6 +25,7 @@ import java.io.IOException;
 import com.eleybourn.bookcatalogue.backup.BackupReader.BackupReaderListener;
 import com.eleybourn.bookcatalogue.backup.BackupWriter.BackupWriterListener;
 import com.eleybourn.bookcatalogue.backup.tar.TarBackupContainer;
+import com.eleybourn.bookcatalogue.filechooser.LocalFileWrapper;
 import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.StorageUtils;
 
@@ -53,7 +54,7 @@ public class Backuptest {
 
 	public static void performBackupTar(File file) throws IOException {
 		System.out.println("Starting " + file.getAbsolutePath());
-		TarBackupContainer bkp = new TarBackupContainer(file);
+		TarBackupContainer bkp = new TarBackupContainer(new LocalFileWrapper(file));
 		BackupWriter wrt = bkp.newWriter();
 
 		wrt.backup(new BackupWriterListener() {
@@ -85,7 +86,7 @@ public class Backuptest {
 	public static void performRestoreTar(File file) throws IOException {
 		System.out.println("Starting " + file.getAbsolutePath());
 		
-		TarBackupContainer bkp = new TarBackupContainer(file);
+		TarBackupContainer bkp = new TarBackupContainer(new LocalFileWrapper(file));
 		// Each format should provide a validator of some kind
 		if (!bkp.isValid())
 			throw new IOException("Not a valid backup file");

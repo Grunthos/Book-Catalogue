@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Serializable;
 
@@ -64,7 +65,7 @@ public class TarBackupWriter extends BackupWriterAbstract {
 	public TarBackupWriter(TarBackupContainer container) throws IOException {
 		mContainer = container;
 		// Open the archive for writing
-		FileOutputStream out = new FileOutputStream(container.getFile());
+		OutputStream out = container.getFile().openOutput();
 		mOutput = new TarArchiveOutputStream(out);
 	}
 

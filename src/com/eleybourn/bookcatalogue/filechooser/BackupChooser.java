@@ -20,9 +20,14 @@
 package com.eleybourn.bookcatalogue.filechooser;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 
+import jcifs.smb.NtlmPasswordAuthentication;
+import jcifs.smb.SmbFile;
+
 import android.os.Bundle;
+import android.widget.Toast;
 
 import com.eleybourn.bookcatalogue.BookCatalogueApp;
 import com.eleybourn.bookcatalogue.BookCataloguePreferences;
@@ -32,6 +37,7 @@ import com.eleybourn.bookcatalogue.dialogs.MessageDialogFragment;
 import com.eleybourn.bookcatalogue.dialogs.MessageDialogFragment.OnMessageDialogResultListener;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.FragmentTask;
+import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.StorageUtils;
 import com.eleybourn.bookcatalogue.utils.Utils;
 
@@ -42,7 +48,7 @@ import com.eleybourn.bookcatalogue.utils.Utils;
  */
 public class BackupChooser extends FileChooser implements OnMessageDialogResultListener {
 	/** The backup file that will be created (if saving) */
-	private File mBackupFile = null;
+	private FileWrapper mBackupFile = null;
 	/** Used when saving state */
 	private final static String STATE_BACKUP_FILE = "BackupFileSpec";
 	
@@ -60,9 +66,8 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 		}
 
 		if (savedInstanceState != null && savedInstanceState.containsKey(STATE_BACKUP_FILE)) {
-			mBackupFile = new File(savedInstanceState.getString(STATE_BACKUP_FILE));
+			mBackupFile = savedInstanceState.getParcelable(STATE_BACKUP_FILE);
 		}
-	
 	}
 
 	/**
@@ -81,19 +86,24 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 
 	/**
 	 * Create the fragment using the last backup for the path, and the default file name (if saving)
+	 * @throws IOException 
 	 */
 	@Override
-	protected FileChooserFragment getChooserFragment() {
+	protected FileChooserFragment getChooserFragment() throws IOException {
 		BookCataloguePreferences prefs = BookCatalogueApp.getAppPreferences();
-		String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
-		return FileChooserFragment.newInstance(new File(lastBackup), getDefaultFileName());
+//		String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
+//		return FileChooserFragment.newInstance(new LocalFileWrapper(new File(lastBackup)), getDefaultFileName());
+//		jcifs.Config.setProperty( "jcifs.netbios.wins", "10.0.0.20" );
+		NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication("albatross", "pjw", "PASSWORD");
+		//String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
+		return FileChooserFragment.newInstance(new CifsFileWrapper(new SmbFile("smb://thoth.local.rime.com.au/multimedia/", auth), auth), getDefaultFileName());
 	}
 
 	/**
 	 * Get a task suited to building a list of backup files.
 	 */
 	@Override
-	public FileLister getFileLister(File root) {
+	public FileLister getFileLister(FileWrapper root) {
 		return new BackupLister(root);
 	}
 
@@ -104,7 +114,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 		super.onSaveInstanceState(outState);
 		// We need the backup file, if set
 		if (mBackupFile != null) {
-			outState.putString(STATE_BACKUP_FILE, mBackupFile.getAbsolutePath());
+			outState.putSerializable(STATE_BACKUP_FILE, mBackupFile);
 		}
 	}
 
@@ -112,7 +122,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	 * If a file was selected, restore the archive.
 	 */
 	@Override
-	public void onOpen(File file) {
+	public void onOpen(FileWrapper file) {
 		BackupManager.restoreCatalogue(this, file, TASK_ID_OPEN);		
 	}
 
@@ -120,8 +130,14 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	 * If a file was selected, save the archive.
 	 */
 	@Override
-	public void onSave(File file) {
-		mBackupFile = BackupManager.backupCatalogue(this, file, TASK_ID_SAVE);
+	public void onSave(FileWrapper file) {
+		try {
+			mBackupFile = BackupManager.backupCatalogue(this, file, TASK_ID_SAVE);
+		} catch (IOException e) {
+			Logger.logError(e);
+			Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
+			return;
+		}
 	}
 
 	@Override
@@ -143,7 +159,13 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 				return;
 			}
 			// Show a helpful message
-			String msg = getString(R.string.archive_complete_details, mBackupFile.getParent(), mBackupFile.getName(), Utils.formatFileSize(mBackupFile.length()));
+			String msg = "";
+			try {
+				msg = getString(R.string.archive_complete_details, mBackupFile.getParentPathPretty(), mBackupFile.getName(), Utils.formatFileSize(mBackupFile.getLength()));
+			} catch (IOException e) {
+				Logger.logError(e);
+				msg = getString(R.string.unexpected_error);
+			}
 			MessageDialogFragment frag = MessageDialogFragment.newInstance(TASK_ID_SAVE, R.string.backup_to_archive, msg, R.string.ok, 0, 0);
 			frag.show(getSupportFragmentManager(), null);
 

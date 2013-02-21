@@ -15,6 +15,7 @@ import com.eleybourn.bookcatalogue.backup.BackupManager;
 import com.eleybourn.bookcatalogue.backup.BackupReader;
 import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
 import com.eleybourn.bookcatalogue.filechooser.FileLister.FileListerListener;
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper.FileWrapperFilter;
 import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
@@ -34,38 +35,49 @@ public class BackupLister extends FileLister {
 	 * 
 	 * @param root
 	 */
-	public BackupLister(File root) {
+	public BackupLister(FileWrapper root) {
 		super(root);
 	}
 
 	/**
 	 * Construct a file filter to select only directories and backup files.
 	 */
-	private FileFilter mFilter = new FileFilter() {
+	private FileWrapperFilter mFilter = new FileWrapperFilter() {
 		@Override
-		public boolean accept(File f) {
-			return (f.isDirectory() && f.canWrite()) || (f.isFile() && mBackupFilePattern.matcher(f.getName()).find());
+		public boolean accept(FileWrapper f) {
+			try {
+				return (f.isDirectory() && f.canWrite()) || (f.isFile() && mBackupFilePattern.matcher(f.getName()).find());
+			} catch (IOException e) {
+				Logger.logError(e);
+				return false;
+			}
 		}
 	};
 
 	/**
 	 * Get the file filter we constructed
 	 */
-	protected FileFilter getFilter() {
+	protected FileWrapperFilter getFilter() {
 		return mFilter;
 	}
 
 	/**
 	 * Process an array of Files into an ArrayList of BackupFileDetails
 	 */
-	protected ArrayList<FileDetails> processList(File[] files) {
+	protected ArrayList<FileDetails> processList(FileWrapper[] files) {
 		ArrayList<FileDetails> dirs = new ArrayList<FileDetails>();
 
 		if (files != null) {
-			for (File f : files) {
+			for (FileWrapper f : files) {
 				BackupFileDetails fd = new BackupFileDetails(f);
 				dirs.add(fd);
-				if (f.getName().toUpperCase().endsWith(".BCBK")) {
+				String fileName = null;
+				try {
+					fileName = f.getName();
+				} catch (IOException e2) {
+					Logger.logError(e2);
+				}
+				if (fileName != null && fileName.toUpperCase().endsWith(".BCBK")) {
 					BackupReader reader = null;
 					try {
 						reader = BackupManager.readBackup(f);

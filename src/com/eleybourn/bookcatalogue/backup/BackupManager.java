@@ -30,6 +30,8 @@ import com.eleybourn.bookcatalogue.backup.BackupReader.BackupReaderListener;
 import com.eleybourn.bookcatalogue.backup.BackupWriter.BackupWriterListener;
 import com.eleybourn.bookcatalogue.backup.tar.TarBackupContainer;
 import com.eleybourn.bookcatalogue.compat.BookCatalogueActivity;
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper;
+import com.eleybourn.bookcatalogue.filechooser.LocalFileWrapper;
 import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
@@ -53,7 +55,7 @@ public class BackupManager {
 	 * 
 	 * @throws IOException (inaccessible, invalid other other errors)
 	 */
-	public static BackupReader readBackup(File file) throws IOException {
+	public static BackupReader readBackup(FileWrapper file) throws IOException {
 		if (!file.exists())
 			throw new java.io.FileNotFoundException("Attempt to open non-existent backup file");
 		
@@ -69,10 +71,11 @@ public class BackupManager {
 
 	/**
 	 * Esnure the file name extension is what we want
+	 * @throws IOException 
 	 */
-	private static File cleanupFile(File requestedFile) {
+	private static FileWrapper cleanupFile(FileWrapper requestedFile) throws IOException {
 		if (!requestedFile.getName().toUpperCase().endsWith(".BCBK")) {
-			return new File(requestedFile.getAbsoluteFile() + ".bcbk");
+			return requestedFile.getParentFile().getChild(requestedFile.getName() + ".bcbk");
 		} else {
 			return requestedFile;
 		}
@@ -83,12 +86,16 @@ public class BackupManager {
 	 * Start a foreground task that backs up the entire catalogue.
 	 * 
 	 * We use a FragmentTask so that long actions do not occur in the UI thread.
+	 * @throws IOException 
 	 */
-	public static File backupCatalogue(final BookCatalogueActivity context, final File requestedFile, int taskId) {
-		final File resultingFile = cleanupFile(requestedFile);
-		final File tempFile = new File(resultingFile.getAbsolutePath() + ".tmp");
+	public static FileWrapper backupCatalogue(final BookCatalogueActivity context, final FileWrapper requestedFile, int taskId) throws IOException {
+		final FileWrapper resultingFile = cleanupFile(requestedFile);
+		//final FileWrapper tempFile = resultingFile.getParentFile().getChild(resultingFile.getName() + ".tmp");
 
 		FragmentTask task = new FragmentTaskAbstract() {
+			//FileWrapper resultingFile;
+			FileWrapper tempFile;
+
 			private boolean mBackupOk = false;
 			private String mBackupDate = Utils.toSqlDateTime(new Date());
 
@@ -97,7 +104,10 @@ public class BackupManager {
 				BackupWriter wrt = null;
 
 				try {
-					System.out.println("Starting " + tempFile.getAbsolutePath());
+					//resultingFile = cleanupFile(requestedFile);
+					tempFile = resultingFile.getParentFile().getChild(resultingFile.getName() + ".tmp");
+
+					System.out.println("Starting " + tempFile.getPathPretty());
 					TarBackupContainer bkp = new TarBackupContainer(tempFile);
 					wrt = bkp.newWriter();
 
@@ -118,7 +128,7 @@ public class BackupManager {
 						}});
 
 					if (fragment.isCancelled()) {
-						System.out.println("Cancelled " + resultingFile.getAbsolutePath());
+						System.out.println("Cancelled " + resultingFile.getPathPretty());
 						if (tempFile.exists())
 							tempFile.delete();
 					} else {
@@ -126,7 +136,7 @@ public class BackupManager {
 							resultingFile.delete();
 						tempFile.renameTo(resultingFile);
 						mBackupOk = true;
-						System.out.println("Finished " + resultingFile.getAbsolutePath() + ", size = " + resultingFile.length());
+						System.out.println("Finished " + resultingFile.getPathPretty() + ", size = " + resultingFile.getLength());
 					}
 				} catch (Exception e) {
 					Logger.logError(e);
@@ -152,14 +162,21 @@ public class BackupManager {
 			public void onFinish(SimpleTaskQueueProgressFragment fragment, Exception exception) {
 				super.onFinish(fragment, exception);
 				if (exception != null) {
-					if (tempFile.exists())
-						tempFile.delete();
+					try {
+						if (tempFile.exists())
+							tempFile.delete();
+					} catch (IOException e) {
+						Logger.logError(e);
+					}
 				}
 				fragment.setSuccess(mBackupOk);
 				if (mBackupOk) {
 					BookCataloguePreferences prefs = BookCatalogueApp.getAppPreferences();
 					prefs.setString(BookCataloguePreferences.PREF_LAST_BACKUP_DATE, mBackupDate);
-					prefs.setString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, resultingFile.getAbsolutePath());
+					// Save the path if it's local
+					if (resultingFile instanceof LocalFileWrapper) {
+						prefs.setString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, ((LocalFileWrapper)resultingFile).getFile().getAbsolutePath());						
+					}
 				}
 			}
 
@@ -174,14 +191,14 @@ public class BackupManager {
 	 * 
 	 * We use a FragmentTask so that long actions do not occur in the UI thread.
 	 */
-	public static void restoreCatalogue(final BookCatalogueActivity context, final File inputFile, int taskId) {
+	public static void restoreCatalogue(final BookCatalogueActivity context, final FileWrapper inputFile, int taskId) {
 
 		FragmentTask task = new FragmentTaskAbstract() {
 			@Override
 			public void run(final SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) {
-				File file = inputFile; //new File(StorageUtils.getSharedStoragePath() + "/bookCatalogue.bcbk");
+				FileWrapper file = inputFile; //new File(StorageUtils.getSharedStoragePath() + "/bookCatalogue.bcbk");
 				try {
-					System.out.println("Starting " + file.getAbsolutePath());
+					System.out.println("Starting " + file.getPathPretty());
 					BackupReader rdr = BackupManager.readBackup(file);
 					rdr.restore(new BackupReaderListener() {
 						@Override
@@ -202,7 +219,11 @@ public class BackupManager {
 					Logger.logError(e);
 					throw new RuntimeException("Error during restore", e);
 				}
-				System.out.println("Finished " + file.getAbsolutePath() + ", size = " + file.length());
+				try {
+					System.out.println("Finished " + file.getPathPretty() + ", size = " + file.getLength());
+				} catch (IOException e) {
+					Logger.logError(e);
+				}
 			}
 		};
 		SimpleTaskQueueProgressFragment frag = SimpleTaskQueueProgressFragment.runTaskWithProgress(context,

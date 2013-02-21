@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 import com.eleybourn.bookcatalogue.backup.BackupContainer;
 import com.eleybourn.bookcatalogue.backup.BackupReader;
 import com.eleybourn.bookcatalogue.backup.BackupWriter;
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper;
 import com.eleybourn.bookcatalogue.utils.Logger;
 
 /**
@@ -61,7 +62,7 @@ public class TarBackupContainer implements BackupContainer {
 	public static final String PREFERENCES = "preferences";
 
 	/** Backup file spec */
-	public File mFile;
+	public FileWrapper mFile;
 	/** UNICODE stream type for read/write text files */
 	public static String UTF8 = "utf8";
 	/** Buffer size for buffered streams */
@@ -72,7 +73,7 @@ public class TarBackupContainer implements BackupContainer {
 	 * 
 	 * @param file
 	 */
-	public TarBackupContainer(File file) {
+	public TarBackupContainer(FileWrapper file) {
 		mFile = file;
 	}
 
@@ -81,7 +82,7 @@ public class TarBackupContainer implements BackupContainer {
 	 * 
 	 * @return
 	 */
-	public File getFile() {
+	public FileWrapper getFile() {
 		return mFile;
 	}
 
