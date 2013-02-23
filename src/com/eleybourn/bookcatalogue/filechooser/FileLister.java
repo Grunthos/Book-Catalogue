@@ -9,7 +9,6 @@ import java.util.Comparator;
 
 import android.app.Activity;
 
-import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
 import com.eleybourn.bookcatalogue.filechooser.FileWrapper.FileWrapperFilter;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
@@ -21,8 +20,8 @@ import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.Fragmen
  * @author pjw
  */
 public abstract class FileLister implements FragmentTask {
-	protected ArrayList<FileDetails> dirs;
-	protected FileWrapper mRoot;
+	protected ArrayList<FileSnapshot> dirs;
+	protected FileSnapshot mRoot;
 
 	/**
 	 * Interface for the creating activity to allow the resulting list to be returned.
@@ -30,7 +29,7 @@ public abstract class FileLister implements FragmentTask {
 	 * @author pjw
 	 */
 	public interface FileListerListener {
-		public void onGotFileList(FileWrapper root, ArrayList<FileDetails> list);
+		public void onGotFileList(FileSnapshot root, ArrayList<FileSnapshot> list);
 	}
 
 	/**
@@ -38,19 +37,19 @@ public abstract class FileLister implements FragmentTask {
 	 * 
 	 * @param root
 	 */
-	public FileLister(FileWrapper root) {
+	public FileLister(FileSnapshot root) {
 		mRoot = root;
 	}
 
 	/** Return a FileFilter appropriate to the types of files being listed */
 	protected abstract FileWrapperFilter getFilter();
 	/** Turn an array of Files into an ArrayList of FileDetails. */
-	protected abstract ArrayList<FileDetails> processList(FileWrapper[] files);
+	protected abstract ArrayList<FileSnapshot> processList(FileWrapper[] files);
 
 	@Override
 	public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws IOException {
 		// Get a file list
-		FileWrapper[] files = mRoot.listFiles(getFilter());
+		FileWrapper[] files = mRoot.getUnderlyingFile().listFiles(getFilter());
 		// Filter/fill-in using the subclass
 		dirs = processList(files);
 		// Sort it
@@ -69,13 +68,9 @@ public abstract class FileLister implements FragmentTask {
 	/**
 	 * Perform case-insensitive sorting using default locale.
 	 */
-	private static class FileDetailsComparator implements Comparator<FileDetails> {
-		public int compare(FileDetails f1, FileDetails f2) {
-			try {
-				return f1.getFile().getName().toUpperCase().compareTo(f2.getFile().getName().toUpperCase());
-			} catch (IOException e) {
-				return 0;
-			}
+	private static class FileDetailsComparator implements Comparator<FileSnapshot> {
+		public int compare(FileSnapshot f1, FileSnapshot f2) {
+			return f1.getName().toUpperCase().compareTo(f2.getName().toUpperCase());
 		}
 	}
 

@@ -20,6 +20,7 @@
 package com.eleybourn.bookcatalogue.filechooser;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import android.app.Activity;
@@ -51,12 +52,12 @@ import com.eleybourn.bookcatalogue.widgets.SimpleListAdapter.ViewProvider;
  * @param <T>		Class for file details, used in showing list.
  */
 public class FileChooserFragment extends BookCatalogueFragment implements FileListerListener {
-	private FileWrapper mRootPath;
+	private FileSnapshot mRootPath;
 	protected static final String ARG_ROOT_PATH = "rootPath";
 	protected static final String ARG_FILE_NAME = "fileName";
 	protected static final String ARG_LIST = "list";
 	// Create an empty one in case we are rotated before generated.
-	protected ArrayList<FileDetails> mList = new ArrayList<FileDetails>();
+	protected ArrayList<FileSnapshot> mList = new ArrayList<FileSnapshot>();
 
 	/**
 	 * Interface that the containing Activity must implement. Called when user changes path.
@@ -64,7 +65,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	 * @author pjw
 	 */
 	public interface PathChangedListener {
-		public void onPathChanged(FileWrapper root);
+		public void onPathChanged(FileSnapshot root);
 	}
 
 	/** Create a new chooser fragment 
@@ -86,14 +87,6 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
         frag.setArguments(args);
 
         return frag;
-	}
-
-	/** Interface for details of files in current directory */
-	public interface FileDetails extends ViewProvider, Parcelable {
-		/** Get the underlying File object */
-		FileWrapper getFile();
-		/** Called to fill in the defails of this object in the View provided by the ViewProvider implementation */
-		public void onSetupView(Context context, int position, View target);
 	}
 
 	/**
@@ -126,21 +119,15 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 
 		// If it's new, just build from scratch, otherwise, get the saved directory and list
 		if (savedInstanceState == null) {
-			mRootPath = (FileWrapper) getArguments().getSerializable(ARG_ROOT_PATH);
+			mRootPath = (FileSnapshot) getArguments().getSerializable(ARG_ROOT_PATH);
 			String fileName = getArguments().getString(ARG_FILE_NAME);
 			EditText et = (EditText) getView().findViewById(R.id.file_name);
 			et.setText(fileName);
-			try {
-				((TextView) getView().findViewById(R.id.path)).setText(mRootPath.getPathPretty());				
-			} catch (IOException e) {
-				Logger.logError(e);
-				Toast.makeText(getActivity(), R.string.unexpected_error, Toast.LENGTH_LONG).show();
-				return;			
-			}
+			((TextView) getView().findViewById(R.id.path)).setText(mRootPath.getPathPretty());				
 			tellActivityPathChanged();
 		} else {
-			mRootPath = (FileWrapper) savedInstanceState.getSerializable(ARG_ROOT_PATH);
-			ArrayList<FileDetails> list = savedInstanceState.getParcelableArrayList(ARG_LIST);
+			mRootPath = (FileSnapshot) savedInstanceState.getSerializable(ARG_ROOT_PATH);
+			ArrayList<FileSnapshot> list = savedInstanceState.getParcelableArrayList(ARG_LIST);
 			this.onGotFileList(mRootPath, list);
 		}
 	}
@@ -156,15 +143,10 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	 * Handle the 'Up' action
 	 */
 	private void handleUp() {
-		FileWrapper parent = null;
+		FileSnapshot parent = null;
 
-		try {
-			parent = mRootPath.getParentFile();			
-		} catch (IOException e) {
-			Logger.logError(e);
-			Toast.makeText(getActivity(), R.string.unexpected_error, Toast.LENGTH_LONG).show();
-			return;			
-		}
+		parent = mRootPath.getParentFile();			
+
 		if (parent == null) {
 			Toast.makeText(getActivity(), R.string.no_parent_directory_found, Toast.LENGTH_LONG).show();
 			return;
@@ -189,7 +171,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	 * 
 	 * @author pjw
 	 */
-	public class DirectoryAdapter extends SimpleListAdapter<FileDetails> {
+	public class DirectoryAdapter extends SimpleListAdapter<FileSnapshot> {
 		boolean series = false;
 
 		/**
@@ -202,31 +184,25 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		 * @param from
 		 * @param to
 		 */
-		public DirectoryAdapter(Context context, int rowViewId, ArrayList<FileDetails> items) {
+		public DirectoryAdapter(Context context, int rowViewId, ArrayList<FileSnapshot> items) {
 			super(context, rowViewId, items);
 		}
 
 		@Override
-		protected void onSetupView(FileDetails fileDetails, int position, View target) {
+		protected void onSetupView(FileSnapshot fileDetails, int position, View target) {
 			fileDetails.onSetupView(getActivity(), position, target);
 		}
 
 		@Override
-		protected void onRowClick(FileDetails fileDetails, int position, View v) {
+		protected void onRowClick(FileSnapshot fileDetails, int position, View v) {
 			if (fileDetails != null) {
 				boolean isDir;
 				String fileName;
-				try {
-					isDir = fileDetails.getFile().isDirectory();
-					fileName = fileDetails.getFile().getName();
-				} catch (IOException e) {
-					Logger.logError(e);
-					Toast.makeText(getActivity(), R.string.unexpected_error, Toast.LENGTH_LONG).show();
-					return;
-				}
+				isDir = fileDetails.isDirectory();
+				fileName = fileDetails.getName();
 				
 				if (isDir) {
-					mRootPath = fileDetails.getFile();
+					mRootPath = fileDetails;
 					tellActivityPathChanged();
 				} else {
 					EditText et = (EditText) FileChooserFragment.this.getView().findViewById(R.id.file_name);
@@ -241,16 +217,16 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		};
 	}
 
-	/** 
-	 * Accessor
-	 * 
-	 * @return
-	 * @throws IOException 
-	 */
-	public FileWrapper getSelectedFile() throws IOException {
-		EditText et = (EditText) getView().findViewById(R.id.file_name);
-		return mRootPath.getChild(et.getText().toString());
-	}
+//	/** 
+//	 * Accessor
+//	 * 
+//	 * @return
+//	 * @throws IOException 
+//	 */
+//	public FileWrapper getSelectedFile() throws IOException {
+//		EditText et = (EditText) getView().findViewById(R.id.file_name);
+//		return mRootPath.getChild(et.getText().toString());
+//	}
 
 	/**
 	 * Display the list
@@ -259,15 +235,9 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	 * @param dirs		List of FileDetials
 	 */
 	@Override
-	public void onGotFileList(FileWrapper root, ArrayList<FileDetails> list) {
+	public void onGotFileList(FileSnapshot root, ArrayList<FileSnapshot> list) {
 		String prettyPath;
-		try {
-			prettyPath = mRootPath.getPathPretty();
-		} catch (IOException e) {
-			Logger.logError(e);
-			Toast.makeText(getActivity(), R.string.unexpected_error, Toast.LENGTH_LONG).show();
-			return;
-		}
+		prettyPath = mRootPath.getPathPretty();
 
 		mRootPath = root;
 		((TextView) getView().findViewById(R.id.path)).setText(prettyPath);

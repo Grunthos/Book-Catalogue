@@ -13,7 +13,6 @@ import android.app.Activity;
 import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.backup.BackupManager;
 import com.eleybourn.bookcatalogue.backup.BackupReader;
-import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
 import com.eleybourn.bookcatalogue.filechooser.FileLister.FileListerListener;
 import com.eleybourn.bookcatalogue.filechooser.FileWrapper.FileWrapperFilter;
 import com.eleybourn.bookcatalogue.utils.Logger;
@@ -35,7 +34,7 @@ public class BackupLister extends FileLister {
 	 * 
 	 * @param root
 	 */
-	public BackupLister(FileWrapper root) {
+	public BackupLister(FileSnapshot root) {
 		super(root);
 	}
 
@@ -64,8 +63,8 @@ public class BackupLister extends FileLister {
 	/**
 	 * Process an array of Files into an ArrayList of BackupFileDetails
 	 */
-	protected ArrayList<FileDetails> processList(FileWrapper[] files) {
-		ArrayList<FileDetails> dirs = new ArrayList<FileDetails>();
+	protected ArrayList<FileSnapshot> processList(FileWrapper[] files) {
+		ArrayList<FileSnapshot> dirs = new ArrayList<FileSnapshot>();
 
 		if (files != null) {
 			for (FileWrapper f : files) {

@@ -14,7 +14,6 @@ import android.widget.TextView;
 
 import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.backup.BackupInfo;
-import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
 import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.Utils;
 
@@ -23,7 +22,7 @@ import com.eleybourn.bookcatalogue.utils.Utils;
  * 
  * @author pjw
  */
-public class BackupFileDetails implements FileDetails {
+public class BackupFileDetails implements FileSnapshot {
 	// IMPORTANT NOTE: If fields are added, then writeToParcelable and the parcelable constructor
 	// must also be modified.
 	
@@ -51,7 +50,7 @@ public class BackupFileDetails implements FileDetails {
 	}
 
 	@Override
-	public FileWrapper getFile() {
+	public FileWrapper getUnderlyingFile() {
 		return mFile;
 	}
 

@@ -35,7 +35,6 @@ import android.widget.Toast;
 
 import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.compat.BookCatalogueActivity;
-import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.FileDetails;
 import com.eleybourn.bookcatalogue.filechooser.FileChooserFragment.PathChangedListener;
 import com.eleybourn.bookcatalogue.filechooser.FileLister.FileListerListener;
 import com.eleybourn.bookcatalogue.utils.Logger;
@@ -256,7 +255,7 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * Called by lister fragment to pass on the list of files.
 	 */
 	@Override
-	public void onGotFileList(FileWrapper root, ArrayList<FileDetails> list) {
+	public void onGotFileList(FileSnapshot root, ArrayList<FileSnapshot> list) {
 		FragmentManager fragmentManager = getSupportFragmentManager();
 		Fragment frag = fragmentManager.findFragmentById(R.id.browser_fragment);
 		if (frag != null && frag instanceof FileListerListener) {
@@ -269,7 +268,7 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * @param root
 	 * @return
 	 */
-	public abstract FileLister getFileLister(FileWrapper root);
+	public abstract FileLister getFileLister(FileSnapshot root);
 	
 	/**
 	 * Rebuild the file list in background; gather whatever data is necessary to
@@ -277,18 +276,12 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * 
 	 * @param root
 	 */
-	public void onPathChanged(FileWrapper root) {
+	public void onPathChanged(FileSnapshot root) {
 		if (root == null)
 			return;
 
 		boolean isDir;
-		try {
-			isDir = root.isDirectory();
-		} catch (IOException e) {
-			Logger.logError(e);
-			Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
-			return;
-		}
+		isDir = root.isDirectory();
 
 		if (!isDir)
 			return;

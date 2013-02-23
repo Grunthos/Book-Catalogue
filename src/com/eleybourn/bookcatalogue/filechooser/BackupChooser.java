@@ -103,7 +103,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	 * Get a task suited to building a list of backup files.
 	 */
 	@Override
-	public FileLister getFileLister(FileWrapper root) {
+	public FileLister getFileLister(FileSnapshot root) {
 		return new BackupLister(root);
 	}
 
