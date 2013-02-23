@@ -39,8 +39,17 @@ public class FileSnapshot implements Parcelable, Serializable {
 		mName = file.getName();
 		mPathPretty = file.getPathPretty();
 		mParentPathPretty = file.getParentPathPretty();
-		mLength = file.getLength();
-		mLastModified = file.getLastModified();
+		if (mExists) {		
+			mLength = file.getLength();
+			mLastModified = file.getLastModified();
+		} else {
+			mLength = 0;
+			mLastModified = 0;
+		}
+	}
+
+	public FileSnapshot newSnapshot() throws IOException {
+		return new FileSnapshot(mParent, mFileWrapper);
 	}
 
 	/** Get the underlying File object */

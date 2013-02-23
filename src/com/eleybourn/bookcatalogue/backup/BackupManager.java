@@ -183,7 +183,12 @@ public class BackupManager {
 				}
 				if (fragment.getActivity() instanceof OnBackupCompleteListener) {
 					OnBackupCompleteListener l = (OnBackupCompleteListener) fragment.getActivity();
-					l.onBackupComplete(resultingFile, mBackupOk, fragment.isCancelled());
+					try {
+						l.onBackupComplete(resultingFile.newSnapshot(), mBackupOk, fragment.isCancelled());
+					} catch (IOException e) {
+						Logger.logError(e);
+						fragment.showToast(R.string.unexpected_error);
+					}
 				}
 			}
 
