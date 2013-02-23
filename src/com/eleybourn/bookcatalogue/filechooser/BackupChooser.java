@@ -97,7 +97,9 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 //		jcifs.Config.setProperty( "jcifs.netbios.wins", "10.0.0.20" );
 		NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication("albatross", "pjw", "PASSWORD");
 		//String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
-		return FileChooserFragment.newInstance(new CifsFileWrapper(new SmbFile("smb://thoth.local.rime.com.au/multimedia/", auth), auth), getDefaultFileName());
+		//CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://thoth.local.rime.com.au/multimedia/", auth), auth);
+		CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://10.0.0.141/multimedia/", auth), auth);
+		return FileChooserFragment.newInstance(new FileSnapshot(null, root), getDefaultFileName());
 	}
 
 	/**

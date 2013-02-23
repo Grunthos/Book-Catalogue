@@ -109,18 +109,30 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 		// Get and display the fragment
 		FragmentManager fragmentManager = getSupportFragmentManager();
 		if (findViewById(R.id.browser_fragment) != null && fragmentManager.findFragmentById(R.id.browser_fragment) == null) {
-			// Create the browser
-			FileChooserFragment frag;
-			try {
-				frag = getChooserFragment();
-			} catch (IOException e) {
-				Logger.logError(e);
-				Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
-				finish();
-				return;
-			}
-			// frag.setArguments(getIntent().getExtras());
-			getSupportFragmentManager().beginTransaction().replace(R.id.browser_fragment, frag).commit();
+			FragmentTask task = new FragmentTask() {
+				FileChooserFragment frag;
+
+				@Override
+				public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws Exception {
+					// Create the browser
+					try {
+						frag = getChooserFragment();
+					} catch (IOException e) {
+						Logger.logError(e);
+						fragment.showToast( R.string.unexpected_error);
+						finish();
+						return;
+					}
+				}
+
+				@Override
+				public void onFinish(SimpleTaskQueueProgressFragment fragment, Exception exception) {
+					if (frag != null) {
+						// frag.setArguments(getIntent().getExtras());
+						getSupportFragmentManager().beginTransaction().replace(R.id.browser_fragment, frag).commit();						
+					}
+				}};
+			SimpleTaskQueueProgressFragment.runTaskWithProgress(this, 0, task, true, 0);
 		}
 
 		// Handle 'Cancel' button
