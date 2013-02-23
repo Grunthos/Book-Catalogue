@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -160,7 +161,7 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * @param file
 	 *            Selected file
 	 */
-	protected abstract void onOpen(FileWrapper file);
+	protected abstract void onOpen(FileSnapshot file);
 
 	/**
 	 * Implemented by subclass to handle a click on the 'Save' button
@@ -168,87 +169,123 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * @param file
 	 *            Selected file
 	 */
-	protected abstract void onSave(FileWrapper file);
+	protected abstract void onSave(FileSnapshot file);
 
-	/**
-	 * Local handler for 'Open'. Perform basic validation, and pass on.
-	 */
-	private void handleOpen() {
-		Fragment frag = getSupportFragmentManager().findFragmentById(R.id.browser_fragment);
-		if (frag instanceof FileChooserFragment) {
-			FileChooserFragment bf = (FileChooserFragment) frag;
-			FileWrapper file;
+	private static class OpenTask implements FragmentTask {
+		private FileSnapshot mFile = null;
+		private final String mFileName;
+		private final FileSnapshot mDirectory;
+		private boolean mDoOpen = false;
+
+		public OpenTask(FileChooserFragment source) {
+			mDirectory = source.getRoot();
+			mFileName = source.getFileName();
+		}
+
+		@Override
+		public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws Exception {
 			boolean exists;
 			boolean isFile;
 			try {
-				file = bf.getSelectedFile();
-				if (file != null) {
-					exists = file.exists();
-					isFile = file.isFile();
+				mFile = mDirectory.getChild(mFileName);
+				if (mFile != null) {
+					exists = mFile.getUnderlyingFile().exists();
+					isFile = mFile.getUnderlyingFile().isFile();
 				} else {
 					exists = false;
 					isFile = false;
 				}
 			} catch (IOException e) {
 				Logger.logError(e);
-				Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
+				fragment.showToast(R.string.unexpected_error);
 				return;
 			}
-			if (file == null || !exists || !isFile) {
-				Toast.makeText(this, R.string.please_select_an_existing_file, Toast.LENGTH_LONG).show();
+			if (mFile == null || !exists || !isFile) {
+				fragment.showToast(R.string.please_select_an_existing_file);
 				return;
 			}
-			onOpen(file);
-		}
-	}
-
-	FragmentTask mSaveTask = new FragmentTask() {
-		private boolean mDoSave = false;
-		private FileWrapper mFile;
-	
-		@Override
-		public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws Exception {
-			Fragment frag = getSupportFragmentManager().findFragmentById(R.id.browser_fragment);
-			if (frag instanceof FileChooserFragment) {
-				FileChooserFragment bf = (FileChooserFragment) frag;
-				
-				boolean exists;
-				boolean isFile;
-				try {
-					mFile = bf.getSelectedFile();
-					if (mFile != null) {
-						exists = mFile.exists();
-						isFile = mFile.isFile();
-					} else {
-						exists = false;
-						isFile = false;
-					}
-				} catch (IOException e) {
-					Logger.logError(e);
-					fragment.showToast(R.string.unexpected_error);
-					return;
-				}
-				
-				if (mFile == null || (exists && !isFile) ) {
-					fragment.showToast(R.string.please_select_a_non_directory);
-					return;
-				}
-				mDoSave = true;
-			}
-
+			mDoOpen = true;
 		}
 
 		@Override
 		public void onFinish(SimpleTaskQueueProgressFragment fragment, Exception exception) {
-			if (mDoSave)
-				onSave(mFile);
+			if (mDoOpen) {
+				Activity a = fragment.getActivity();
+				if (a instanceof FileChooser) {
+					((FileChooser)a).onOpen(mFile);					
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Local handler for 'Open'. Perform basic validation, and pass on.
+	 */
+	private void handleOpen() {
+		Fragment frag = getSupportFragmentManager().findFragmentById(R.id.browser_fragment);
+		if (frag instanceof FileChooserFragment) {
+			OpenTask task = new OpenTask((FileChooserFragment)frag);
+			SimpleTaskQueueProgressFragment.runTaskWithProgress(this, 0, task, true, 0);
+		}
+	}
+
+	private static class SaveTask implements FragmentTask {
+		private FileSnapshot mFile = null;
+		private final String mFileName;
+		private final FileSnapshot mDirectory;
+		private boolean mDoSave = false;
+
+		public SaveTask(FileChooserFragment source) {
+			mDirectory = source.getRoot();
+			mFileName = source.getFileName();
+		}
+
+		@Override
+		public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws Exception {
+			boolean exists;
+			boolean isFile;
+			try {
+				mFile = mDirectory.getChild(mFileName);
+				if (mFile != null) {
+					exists = mFile.getUnderlyingFile().exists();
+					isFile = mFile.getUnderlyingFile().isFile();
+				} else {
+					exists = false;
+					isFile = false;
+				}
+			} catch (IOException e) {
+				Logger.logError(e);
+				fragment.showToast(R.string.unexpected_error);
+				return;
+			}
+
+			if (mFile == null || (exists && !isFile) ) {
+				fragment.showToast(R.string.please_select_a_non_directory);
+				return;
+			}
+			mDoSave = true;
+		}
+
+		@Override
+		public void onFinish(SimpleTaskQueueProgressFragment fragment, Exception exception) {
+			if (mDoSave) {
+				Activity a = fragment.getActivity();
+				if (a instanceof FileChooser) {
+					((FileChooser)a).onSave(mFile);					
+				}
+			}
 		}};
 	
 	/**
 	 * Local handler for 'Save'. Perform basic validation, and pass on.
 	 */
 	private void handleSave() {
-		SimpleTaskQueueProgressFragment.runTaskWithProgress(this, R.string.save, mSaveTask, true, 0);
+		Fragment frag = getSupportFragmentManager().findFragmentById(R.id.browser_fragment);
+		if (frag instanceof FileChooserFragment) {
+			SaveTask task = new SaveTask((FileChooserFragment)frag);
+			SimpleTaskQueueProgressFragment.runTaskWithProgress(this, 0, task, true, 0);
+		}
+
 	}
 
 	/**

@@ -217,16 +217,24 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		};
 	}
 
-//	/** 
-//	 * Accessor
-//	 * 
-//	 * @return
-//	 * @throws IOException 
-//	 */
-//	public FileWrapper getSelectedFile() throws IOException {
-//		EditText et = (EditText) getView().findViewById(R.id.file_name);
-//		return mRootPath.getChild(et.getText().toString());
-//	}
+	/** 
+	 * Accessor
+	 * 
+	 * @return
+	 */
+	public String getFileName() {
+		EditText et = (EditText) getView().findViewById(R.id.file_name);
+		return et.getText().toString();
+	}
+
+	/** 
+	 * Accessor
+	 * 
+	 * @return
+	 */
+	public FileSnapshot getRoot() {
+		return mRootPath;
+	}
 
 	/**
 	 * Display the list

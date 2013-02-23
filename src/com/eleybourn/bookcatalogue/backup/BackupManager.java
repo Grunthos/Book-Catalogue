@@ -30,6 +30,7 @@ import com.eleybourn.bookcatalogue.backup.BackupReader.BackupReaderListener;
 import com.eleybourn.bookcatalogue.backup.BackupWriter.BackupWriterListener;
 import com.eleybourn.bookcatalogue.backup.tar.TarBackupContainer;
 import com.eleybourn.bookcatalogue.compat.BookCatalogueActivity;
+import com.eleybourn.bookcatalogue.filechooser.FileSnapshot;
 import com.eleybourn.bookcatalogue.filechooser.FileWrapper;
 import com.eleybourn.bookcatalogue.filechooser.LocalFileWrapper;
 import com.eleybourn.bookcatalogue.utils.Logger;
@@ -73,7 +74,7 @@ public class BackupManager {
 	 * Esnure the file name extension is what we want
 	 * @throws IOException 
 	 */
-	private static FileWrapper cleanupFile(FileWrapper requestedFile) throws IOException {
+	private static FileWrapper cleanupFile(FileSnapshot requestedFile) throws IOException {
 		if (!requestedFile.getName().toUpperCase().endsWith(".BCBK")) {
 			return requestedFile.getParentFile().getChild(requestedFile.getName() + ".bcbk");
 		} else {
@@ -88,8 +89,8 @@ public class BackupManager {
 	 * We use a FragmentTask so that long actions do not occur in the UI thread.
 	 * @throws IOException 
 	 */
-	public static FileWrapper backupCatalogue(final BookCatalogueActivity context, final FileWrapper requestedFile, int taskId) throws IOException {
-		final FileWrapper resultingFile = cleanupFile(requestedFile);
+	public static FileSnapshot backupCatalogue(final BookCatalogueActivity context, final FileSnapshot requestedFile, int taskId) throws IOException {
+		final FileSnapshot resultingFile = cleanupFile(requestedFile);
 		//final FileWrapper tempFile = resultingFile.getParentFile().getChild(resultingFile.getName() + ".tmp");
 
 		FragmentTask task = new FragmentTaskAbstract() {
@@ -105,7 +106,7 @@ public class BackupManager {
 
 				try {
 					//resultingFile = cleanupFile(requestedFile);
-					tempFile = resultingFile.getParentFile().getChild(resultingFile.getName() + ".tmp");
+					tempFile = requestedFile.getParentFile().getChild(resultingFile.getName() + ".tmp").getUnderlyingFile();
 
 					System.out.println("Starting " + tempFile.getPathPretty());
 					TarBackupContainer bkp = new TarBackupContainer(tempFile);
@@ -133,10 +134,10 @@ public class BackupManager {
 							tempFile.delete();
 					} else {
 						if (resultingFile.exists())
-							resultingFile.delete();
-						tempFile.renameTo(resultingFile);
+							resultingFile.getUnderlyingFile().delete();
+						tempFile.renameTo(resultingFile.getUnderlyingFile());
 						mBackupOk = true;
-						System.out.println("Finished " + resultingFile.getPathPretty() + ", size = " + resultingFile.getLength());
+						System.out.println("Finished " + resultingFile.getPathPretty() + ", size = " + resultingFile.getUnderlyingFile().getLength());
 					}
 				} catch (Exception e) {
 					Logger.logError(e);
@@ -174,8 +175,8 @@ public class BackupManager {
 					BookCataloguePreferences prefs = BookCatalogueApp.getAppPreferences();
 					prefs.setString(BookCataloguePreferences.PREF_LAST_BACKUP_DATE, mBackupDate);
 					// Save the path if it's local
-					if (resultingFile instanceof LocalFileWrapper) {
-						prefs.setString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, ((LocalFileWrapper)resultingFile).getFile().getAbsolutePath());						
+					if (resultingFile.getUnderlyingFile() instanceof LocalFileWrapper) {
+						prefs.setString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, ((LocalFileWrapper)resultingFile.getUnderlyingFile()).getFile().getAbsolutePath());						
 					}
 				}
 			}
@@ -191,12 +192,12 @@ public class BackupManager {
 	 * 
 	 * We use a FragmentTask so that long actions do not occur in the UI thread.
 	 */
-	public static void restoreCatalogue(final BookCatalogueActivity context, final FileWrapper inputFile, int taskId) {
+	public static void restoreCatalogue(final BookCatalogueActivity context, final FileSnapshot inputFile, int taskId) {
 
 		FragmentTask task = new FragmentTaskAbstract() {
 			@Override
 			public void run(final SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) {
-				FileWrapper file = inputFile; //new File(StorageUtils.getSharedStoragePath() + "/bookCatalogue.bcbk");
+				FileWrapper file = inputFile.getUnderlyingFile(); //new File(StorageUtils.getSharedStoragePath() + "/bookCatalogue.bcbk");
 				try {
 					System.out.println("Starting " + file.getPathPretty());
 					BackupReader rdr = BackupManager.readBackup(file);

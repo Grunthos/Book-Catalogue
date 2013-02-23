@@ -122,7 +122,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	 * If a file was selected, restore the archive.
 	 */
 	@Override
-	public void onOpen(FileWrapper file) {
+	public void onOpen(FileSnapshot file) {
 		BackupManager.restoreCatalogue(this, file, TASK_ID_OPEN);		
 	}
 
@@ -130,7 +130,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	 * If a file was selected, save the archive.
 	 */
 	@Override
-	public void onSave(FileWrapper file) {
+	public void onSave(FileSnapshot file) {
 		try {
 			mBackupFile = BackupManager.backupCatalogue(this, file, TASK_ID_SAVE);
 		} catch (IOException e) {
