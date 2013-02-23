@@ -292,7 +292,7 @@ public abstract class FileChooser extends BookCatalogueActivity implements
 	 * Called by lister fragment to pass on the list of files.
 	 */
 	@Override
-	public void onGotFileList(FileSnapshot root, ArrayList<FileSnapshot> list) {
+	public void onGotFileList(FileSnapshot root, ArrayList<FileListItem> list) {
 		FragmentManager fragmentManager = getSupportFragmentManager();
 		Fragment frag = fragmentManager.findFragmentById(R.id.browser_fragment);
 		if (frag != null && frag instanceof FileListerListener) {

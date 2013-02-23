@@ -57,7 +57,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	protected static final String ARG_FILE_NAME = "fileName";
 	protected static final String ARG_LIST = "list";
 	// Create an empty one in case we are rotated before generated.
-	protected ArrayList<FileSnapshot> mList = new ArrayList<FileSnapshot>();
+	protected ArrayList<FileListItem> mList = new ArrayList<FileListItem>();
 
 	/**
 	 * Interface that the containing Activity must implement. Called when user changes path.
@@ -70,8 +70,8 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 
 	/** Create a new chooser fragment 
 	 * @throws IOException */
-	public static FileChooserFragment newInstance(FileWrapper root, String fileName) throws IOException {
-		FileWrapper path;
+	public static FileChooserFragment newInstance(FileSnapshot root, String fileName) throws IOException {
+		FileSnapshot path;
 		// Turn the passed File into a directory
 		if (root.isDirectory()) {
 			path = root;
@@ -127,7 +127,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 			tellActivityPathChanged();
 		} else {
 			mRootPath = (FileSnapshot) savedInstanceState.getSerializable(ARG_ROOT_PATH);
-			ArrayList<FileSnapshot> list = savedInstanceState.getParcelableArrayList(ARG_LIST);
+			ArrayList<FileListItem> list = savedInstanceState.getParcelableArrayList(ARG_LIST);
 			this.onGotFileList(mRootPath, list);
 		}
 	}
@@ -171,7 +171,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	 * 
 	 * @author pjw
 	 */
-	public class DirectoryAdapter extends SimpleListAdapter<FileSnapshot> {
+	public class DirectoryAdapter extends SimpleListAdapter<FileListItem> {
 		boolean series = false;
 
 		/**
@@ -184,25 +184,25 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		 * @param from
 		 * @param to
 		 */
-		public DirectoryAdapter(Context context, int rowViewId, ArrayList<FileSnapshot> items) {
+		public DirectoryAdapter(Context context, int rowViewId, ArrayList<FileListItem> items) {
 			super(context, rowViewId, items);
 		}
 
 		@Override
-		protected void onSetupView(FileSnapshot fileDetails, int position, View target) {
+		protected void onSetupView(FileListItem fileDetails, int position, View target) {
 			fileDetails.onSetupView(getActivity(), position, target);
 		}
 
 		@Override
-		protected void onRowClick(FileSnapshot fileDetails, int position, View v) {
+		protected void onRowClick(FileListItem fileDetails, int position, View v) {
 			if (fileDetails != null) {
 				boolean isDir;
 				String fileName;
-				isDir = fileDetails.isDirectory();
-				fileName = fileDetails.getName();
+				isDir = fileDetails.getUnderlyingFile().isDirectory();
+				fileName = fileDetails.getUnderlyingFile().getName();
 				
 				if (isDir) {
-					mRootPath = fileDetails;
+					mRootPath = fileDetails.getUnderlyingFile();
 					tellActivityPathChanged();
 				} else {
 					EditText et = (EditText) FileChooserFragment.this.getView().findViewById(R.id.file_name);
@@ -243,7 +243,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	 * @param dirs		List of FileDetials
 	 */
 	@Override
-	public void onGotFileList(FileSnapshot root, ArrayList<FileSnapshot> list) {
+	public void onGotFileList(FileSnapshot root, ArrayList<FileListItem> list) {
 		String prettyPath;
 		prettyPath = mRootPath.getPathPretty();
 

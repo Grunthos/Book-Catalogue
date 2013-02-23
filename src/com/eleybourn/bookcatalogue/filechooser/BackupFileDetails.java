@@ -1,7 +1,5 @@
 package com.eleybourn.bookcatalogue.filechooser;
 
-import java.io.File;
-import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Date;
 
@@ -14,7 +12,6 @@ import android.widget.TextView;
 
 import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.backup.BackupInfo;
-import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.Utils;
 
 /**
@@ -22,21 +19,21 @@ import com.eleybourn.bookcatalogue.utils.Utils;
  * 
  * @author pjw
  */
-public class BackupFileDetails implements FileSnapshot {
+public class BackupFileDetails implements FileListItem {
 	// IMPORTANT NOTE: If fields are added, then writeToParcelable and the parcelable constructor
 	// must also be modified.
 	
 	/** File for this item */
-	private FileWrapper mFile;
+	private FileSnapshot mFile;
 	/** The BackupInfo we use when displaying the object */
 	private BackupInfo mInfo;
-
+	
 	/**
 	 * Constructor
 	 * 
 	 * @param file
 	 */
-	public BackupFileDetails(FileWrapper file) {
+	public BackupFileDetails(FileSnapshot file) {
 		mFile = file;
 	}
 
@@ -50,7 +47,7 @@ public class BackupFileDetails implements FileSnapshot {
 	}
 
 	@Override
-	public FileWrapper getUnderlyingFile() {
+	public FileSnapshot getUnderlyingFile() {
 		return mFile;
 	}
 
@@ -74,17 +71,11 @@ public class BackupFileDetails implements FileSnapshot {
 		long length = 0;
 		long modDate = 0;
 
-		try {
-			fileName = mFile.getName();
-			isDir = mFile.isDirectory();
-			if (!isDir) {
-				length = mFile.getLength();
-				modDate = mFile.getLastModified();
-			}
-		} catch (IOException e) {
-			Logger.logError(e);
-			fileName = c.getString(R.string.unexpected_error);
-			isDir = false;
+		fileName = mFile.getName();
+		isDir = mFile.isDirectory();
+		if (!isDir) {
+			length = mFile.getLength();
+			modDate = mFile.getLastModified();
 		}
 		
 		// Set the basic data
@@ -146,7 +137,7 @@ public class BackupFileDetails implements FileSnapshot {
 	 * Constructor, using a Parcel as source.
 	 */
 	private BackupFileDetails(Parcel in) {
-		mFile = (FileWrapper) in.readSerializable();
+		mFile = (FileSnapshot) in.readSerializable();
 		byte infoFlag = in.readByte();
 		if (infoFlag != (byte)0) {
 			mInfo = new BackupInfo(in.readBundle());

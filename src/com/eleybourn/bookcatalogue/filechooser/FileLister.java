@@ -20,7 +20,7 @@ import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.Fragmen
  * @author pjw
  */
 public abstract class FileLister implements FragmentTask {
-	protected ArrayList<FileSnapshot> dirs;
+	protected ArrayList<FileListItem> dirs;
 	protected FileSnapshot mRoot;
 
 	/**
@@ -29,7 +29,7 @@ public abstract class FileLister implements FragmentTask {
 	 * @author pjw
 	 */
 	public interface FileListerListener {
-		public void onGotFileList(FileSnapshot root, ArrayList<FileSnapshot> list);
+		public void onGotFileList(FileSnapshot root, ArrayList<FileListItem> list);
 	}
 
 	/**
@@ -41,10 +41,15 @@ public abstract class FileLister implements FragmentTask {
 		mRoot = root;
 	}
 
+	public FileSnapshot getRoot() {
+		return mRoot;
+	}
+
 	/** Return a FileFilter appropriate to the types of files being listed */
 	protected abstract FileWrapperFilter getFilter();
-	/** Turn an array of Files into an ArrayList of FileDetails. */
-	protected abstract ArrayList<FileSnapshot> processList(FileWrapper[] files);
+	/** Turn an array of Files into an ArrayList of FileDetails. 
+	 * @throws IOException */
+	protected abstract ArrayList<FileListItem> processList(FileWrapper[] files) throws IOException;
 
 	@Override
 	public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws IOException {
@@ -68,9 +73,9 @@ public abstract class FileLister implements FragmentTask {
 	/**
 	 * Perform case-insensitive sorting using default locale.
 	 */
-	private static class FileDetailsComparator implements Comparator<FileSnapshot> {
-		public int compare(FileSnapshot f1, FileSnapshot f2) {
-			return f1.getName().toUpperCase().compareTo(f2.getName().toUpperCase());
+	private static class FileDetailsComparator implements Comparator<FileListItem> {
+		public int compare(FileListItem f1, FileListItem f2) {
+			return f1.getUnderlyingFile().getName().toUpperCase().compareTo(f2.getUnderlyingFile().getName().toUpperCase());
 		}
 	}
 

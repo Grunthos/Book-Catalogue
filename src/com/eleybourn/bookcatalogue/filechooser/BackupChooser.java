@@ -33,6 +33,7 @@ import com.eleybourn.bookcatalogue.BookCatalogueApp;
 import com.eleybourn.bookcatalogue.BookCataloguePreferences;
 import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.backup.BackupManager;
+import com.eleybourn.bookcatalogue.backup.BackupManager.OnBackupCompleteListener;
 import com.eleybourn.bookcatalogue.dialogs.MessageDialogFragment;
 import com.eleybourn.bookcatalogue.dialogs.MessageDialogFragment.OnMessageDialogResultListener;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
@@ -46,9 +47,9 @@ import com.eleybourn.bookcatalogue.utils.Utils;
  * 
  * @author pjw
  */
-public class BackupChooser extends FileChooser implements OnMessageDialogResultListener {
+public class BackupChooser extends FileChooser implements OnMessageDialogResultListener, OnBackupCompleteListener {
 	/** The backup file that will be created (if saving) */
-	private FileWrapper mBackupFile = null;
+	//private FileWrapper mBackupFile = null;
 	/** Used when saving state */
 	private final static String STATE_BACKUP_FILE = "BackupFileSpec";
 	
@@ -66,7 +67,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 		}
 
 		if (savedInstanceState != null && savedInstanceState.containsKey(STATE_BACKUP_FILE)) {
-			mBackupFile = savedInstanceState.getParcelable(STATE_BACKUP_FILE);
+			//mBackupFile = savedInstanceState.getParcelable(STATE_BACKUP_FILE);
 		}
 	}
 
@@ -113,9 +114,9 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
 		// We need the backup file, if set
-		if (mBackupFile != null) {
-			outState.putSerializable(STATE_BACKUP_FILE, mBackupFile);
-		}
+		//if (mBackupFile != null) {
+		//	outState.putSerializable(STATE_BACKUP_FILE, mBackupFile);
+		//}
 	}
 
 	/**
@@ -132,7 +133,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	@Override
 	public void onSave(FileSnapshot file) {
 		try {
-			mBackupFile = BackupManager.backupCatalogue(this, file, TASK_ID_SAVE);
+			BackupManager.backupCatalogue(this, file, TASK_ID_SAVE);
 		} catch (IOException e) {
 			Logger.logError(e);
 			Toast.makeText(this, R.string.unexpected_error, Toast.LENGTH_LONG).show();
@@ -144,31 +145,6 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	public void onTaskFinished(SimpleTaskQueueProgressFragment fragment, int taskId, boolean success, boolean cancelled, FragmentTask task) {
 		// Is it a task we care about?
 		if (taskId == TASK_ID_SAVE) {
-			if (!success) {
-				String msg = getString(R.string.backup_failed)
-						+ " " + getString(R.string.please_check_sd_writable)
-						+ "\n\n" + getString(R.string.if_the_problem_persists);
-
-				MessageDialogFragment frag = MessageDialogFragment.newInstance(0, R.string.backup_to_archive, msg, R.string.ok, 0, 0);
-				frag.show(getSupportFragmentManager(), null);
-				// Just return; user may want to try again
-				return;
-			}
-			if (cancelled) {
-				// Just return; user may want to try again
-				return;
-			}
-			// Show a helpful message
-			String msg = "";
-			try {
-				msg = getString(R.string.archive_complete_details, mBackupFile.getParentPathPretty(), mBackupFile.getName(), Utils.formatFileSize(mBackupFile.getLength()));
-			} catch (IOException e) {
-				Logger.logError(e);
-				msg = getString(R.string.unexpected_error);
-			}
-			MessageDialogFragment frag = MessageDialogFragment.newInstance(TASK_ID_SAVE, R.string.backup_to_archive, msg, R.string.ok, 0, 0);
-			frag.show(getSupportFragmentManager(), null);
-
 		} else if (taskId == TASK_ID_OPEN) {
 			if (!success) {
 				String msg = getString(R.string.import_failed)
@@ -208,6 +184,29 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 			finish();
 			break;
 		}
+	}
+
+	@Override
+	public void onBackupComplete(FileSnapshot file, boolean success, boolean cancelled) {
+		if (!success) {
+			String msg = getString(R.string.backup_failed)
+					+ " " + getString(R.string.please_check_sd_writable)
+					+ "\n\n" + getString(R.string.if_the_problem_persists);
+
+			MessageDialogFragment frag = MessageDialogFragment.newInstance(0, R.string.backup_to_archive, msg, R.string.ok, 0, 0);
+			frag.show(getSupportFragmentManager(), null);
+			// Just return; user may want to try again
+			return;
+		}
+		if (cancelled) {
+			// Just return; user may want to try again
+			return;
+		}
+		// Show a helpful message
+		String msg = getString(R.string.archive_complete_details, file.getParentPathPretty(), file.getName(), Utils.formatFileSize(file.getLength()));
+
+		MessageDialogFragment frag = MessageDialogFragment.newInstance(TASK_ID_SAVE, R.string.backup_to_archive, msg, R.string.ok, 0, 0);
+		frag.show(getSupportFragmentManager(), null);
 	}
 
 }

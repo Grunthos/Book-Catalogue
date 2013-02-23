@@ -19,70 +19,25 @@ public class CifsFileWrapper implements FileWrapper {
 
 	private SmbFile mFile;
 	private NtlmPasswordAuthentication mAuth;
-	private boolean mHasSnapshot = false;
-	private boolean mIsDirectory;
-	private boolean mIsFile;
-	private long mLength;
-	private long mLastModified;
-	private String mName;
-	private String mUncPath;
-	private String mParent;
-	private boolean mExists;
-	private boolean mCanWrite;
-	private CifsFileWrapper mParentFile;
 
 	public CifsFileWrapper(SmbFile file, NtlmPasswordAuthentication auth) throws SmbException {
 		mAuth = auth;
 		mFile = file;
 	}
 
-	public void makeSnapshot() throws SmbException, MalformedURLException {
-		mHasSnapshot = false;
-
-		mIsDirectory = mFile.isDirectory();
-		mIsFile = mFile.isFile();
-		mLastModified = mFile.lastModified();
-		mName = mFile.getName();
-		mUncPath =  mFile.getUncPath();
-		mParent = mFile.getParent();
-		if (mFile.getType() == SmbFile.TYPE_FILESYSTEM) {
-			mExists = mFile.exists();
-		} else {
-			mExists = true;
-		}
-		mCanWrite = mFile.canWrite();	
-		mLength = mFile.length();
-
-		mParentFile = getParentFile();
-
-		mHasSnapshot = true;
-	}
-
 	@Override
 	public boolean isDirectory() throws SmbException {
-		if (mHasSnapshot) {
-			return mIsDirectory;
-		} else {
-			return mFile.isDirectory();
-		}
+		return mFile.isDirectory();
 	}
 
 	@Override
 	public boolean isFile() throws SmbException {
-		if (mHasSnapshot) {
-			return mIsFile;
-		} else {
-			return mFile.isFile();
-		}
+		return mFile.isFile();
 	}
 
 	@Override
 	public long getLastModified() throws SmbException {
-		if (mHasSnapshot) {
-			return mLastModified;
-		} else {
-			return mFile.lastModified();
-		}
+		return mFile.lastModified();
 	}
 
 	@Override
@@ -97,42 +52,26 @@ public class CifsFileWrapper implements FileWrapper {
 
 	@Override
 	public String getName() {
-		if (mHasSnapshot) {
-			return mName;
-		} else {
-			return mFile.getName();
-		}
+		return mFile.getName();
 	}
 
 	@Override
 	public String getPathPretty() {
-		if (mHasSnapshot) {
-			return mUncPath;
-		} else {
-			return mFile.getUncPath();
-		}
+		return mFile.getUncPath();
 	}
 
 	@Override
 	public String getParentPathPretty() {
-		if (mHasSnapshot) {
-			return mParent;
-		} else {
-			return mFile.getParent();
-		}
+		return mFile.getParent();
 	}
 
 	@Override
 	public CifsFileWrapper getParentFile() throws MalformedURLException, SmbException {
-		if (mHasSnapshot) {
-			return mParentFile;
+		SmbFile parent = new SmbFile(mFile.getParent(), mAuth);
+		if (parent.getType() == SmbFile.TYPE_FILESYSTEM || parent.getType() == SmbFile.TYPE_SHARE) {
+			return new CifsFileWrapper(parent, mAuth);
 		} else {
-			SmbFile parent = new SmbFile(mFile.getParent(), mAuth);
-			if (parent.getType() == SmbFile.TYPE_FILESYSTEM || parent.getType() == SmbFile.TYPE_SHARE) {
-				return new CifsFileWrapper(parent, mAuth);
-			} else {
-				return null;
-			}
+			return null;
 		}
 	}
 
@@ -147,7 +86,6 @@ public class CifsFileWrapper implements FileWrapper {
 		FileWrapper[] wrappers = new FileWrapper[files.length];
 		for(int i = 0; i < files.length; i++) {
 			CifsFileWrapper w = new CifsFileWrapper(files[i], mAuth);
-			w.makeSnapshot();
 			wrappers[i] = w;
 		}
 		return wrappers;
@@ -161,7 +99,6 @@ public class CifsFileWrapper implements FileWrapper {
 		for(SmbFile f: files) {
 			CifsFileWrapper w = new CifsFileWrapper(f, mAuth);
 			if (filter.accept(w)) {
-				w.makeSnapshot();
 				list.add(w);
 			}
 		}
@@ -173,29 +110,17 @@ public class CifsFileWrapper implements FileWrapper {
 
 	@Override
 	public long getLength() throws SmbException {
-		if (mHasSnapshot) {
-			return mLength;
-		} else {
-			return mFile.length();
-		}
+		return mFile.length();
 	}
 
 	@Override
 	public boolean exists() throws SmbException {
-		if (mHasSnapshot) {
-			return mExists;
-		} else {
-			return mFile.exists();
-		}
+		return mFile.exists();
 	}
 
 	@Override
 	public boolean canWrite() throws SmbException {
-		if (mHasSnapshot) {
-			return mCanWrite;
-		} else {
-			return mFile.canWrite();
-		}
+		return mFile.canWrite();
 	}
 
 	@Override

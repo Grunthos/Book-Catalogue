@@ -47,6 +47,9 @@ import com.eleybourn.bookcatalogue.utils.Utils;
  */
 public class BackupManager {
 
+	public interface OnBackupCompleteListener {
+		public void onBackupComplete(FileSnapshot file, boolean success, boolean cancelled);
+	}
 	/**
 	 * Create a BackupReader for the specified file.
 	 * 
@@ -74,7 +77,7 @@ public class BackupManager {
 	 * Esnure the file name extension is what we want
 	 * @throws IOException 
 	 */
-	private static FileWrapper cleanupFile(FileSnapshot requestedFile) throws IOException {
+	private static FileSnapshot cleanupFile(FileSnapshot requestedFile) throws IOException {
 		if (!requestedFile.getName().toUpperCase().endsWith(".BCBK")) {
 			return requestedFile.getParentFile().getChild(requestedFile.getName() + ".bcbk");
 		} else {
@@ -89,12 +92,11 @@ public class BackupManager {
 	 * We use a FragmentTask so that long actions do not occur in the UI thread.
 	 * @throws IOException 
 	 */
-	public static FileSnapshot backupCatalogue(final BookCatalogueActivity context, final FileSnapshot requestedFile, int taskId) throws IOException {
-		final FileSnapshot resultingFile = cleanupFile(requestedFile);
+	public static void backupCatalogue(final BookCatalogueActivity context, final FileSnapshot requestedFile, int taskId) throws IOException {
 		//final FileWrapper tempFile = resultingFile.getParentFile().getChild(resultingFile.getName() + ".tmp");
 
 		FragmentTask task = new FragmentTaskAbstract() {
-			//FileWrapper resultingFile;
+			FileSnapshot resultingFile;
 			FileWrapper tempFile;
 
 			private boolean mBackupOk = false;
@@ -105,7 +107,7 @@ public class BackupManager {
 				BackupWriter wrt = null;
 
 				try {
-					//resultingFile = cleanupFile(requestedFile);
+					resultingFile = cleanupFile(requestedFile);
 					tempFile = requestedFile.getParentFile().getChild(resultingFile.getName() + ".tmp").getUnderlyingFile();
 
 					System.out.println("Starting " + tempFile.getPathPretty());
@@ -179,12 +181,15 @@ public class BackupManager {
 						prefs.setString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, ((LocalFileWrapper)resultingFile.getUnderlyingFile()).getFile().getAbsolutePath());						
 					}
 				}
+				if (fragment.getActivity() instanceof OnBackupCompleteListener) {
+					OnBackupCompleteListener l = (OnBackupCompleteListener) fragment.getActivity();
+					l.onBackupComplete(resultingFile, mBackupOk, fragment.isCancelled());
+				}
 			}
 
 		};
 		SimpleTaskQueueProgressFragment frag = SimpleTaskQueueProgressFragment.runTaskWithProgress(context, R.string.backing_up_ellipsis, task, false, taskId);
 		frag.setNumberFormat(null);
-		return resultingFile;
 	}
 
 	/**

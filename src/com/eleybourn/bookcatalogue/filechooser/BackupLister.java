@@ -62,13 +62,14 @@ public class BackupLister extends FileLister {
 
 	/**
 	 * Process an array of Files into an ArrayList of BackupFileDetails
+	 * @throws IOException 
 	 */
-	protected ArrayList<FileSnapshot> processList(FileWrapper[] files) {
-		ArrayList<FileSnapshot> dirs = new ArrayList<FileSnapshot>();
+	protected ArrayList<FileListItem> processList(FileWrapper[] files) throws IOException {
+		ArrayList<FileListItem> dirs = new ArrayList<FileListItem>();
 
 		if (files != null) {
 			for (FileWrapper f : files) {
-				BackupFileDetails fd = new BackupFileDetails(f);
+				BackupFileDetails fd = new BackupFileDetails(new FileSnapshot(this.getRoot(), f));
 				dirs.add(fd);
 				String fileName = null;
 				try {
