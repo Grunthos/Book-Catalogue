@@ -2,15 +2,20 @@ package com.eleybourn.bookcatalogue.filechooser;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import com.eleybourn.bookcatalogue.utils.Logger;
+
 import jcifs.smb.NtlmPasswordAuthentication;
+import jcifs.smb.SmbAuthException;
 import jcifs.smb.SmbException;
 import jcifs.smb.SmbFile;
+import jcifs.smb.SmbFileFilter;
 import jcifs.smb.SmbFileInputStream;
 import jcifs.smb.SmbFileOutputStream;
 
@@ -23,6 +28,16 @@ public class CifsFileWrapper implements FileWrapper {
 	public CifsFileWrapper(SmbFile file, NtlmPasswordAuthentication auth) throws SmbException {
 		mAuth = auth;
 		mFile = file;
+	}
+	
+	private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+		out.writeObject(mAuth);
+		out.writeUTF(mFile.getPath());
+	}
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+		mAuth = (NtlmPasswordAuthentication) in.readObject();
+		String path = in.readUTF();
+		mFile = new SmbFile(path, mAuth);
 	}
 
 	@Override
@@ -80,32 +95,80 @@ public class CifsFileWrapper implements FileWrapper {
 		return new CifsFileWrapper(new SmbFile(mFile.getPath() + "/" + fileName, mAuth), mAuth);
 	}
 
-	@Override
-	public FileWrapper[] listFiles() throws SmbException, MalformedURLException {
-		SmbFile[] files = mFile.listFiles();
-		FileWrapper[] wrappers = new FileWrapper[files.length];
-		for(int i = 0; i < files.length; i++) {
-			CifsFileWrapper w = new CifsFileWrapper(files[i], mAuth);
-			wrappers[i] = w;
+	private class SimpleFilter implements SmbFileFilter {
+		private FileWrapperFilter mUserFilter;
+		private ArrayList<FileWrapper> mArray = new ArrayList<FileWrapper>();
+
+		public SimpleFilter(FileWrapperFilter userFilter) {
+			mUserFilter = userFilter;
 		}
-		return wrappers;
-	}
+
+		private ArrayList<FileWrapper> getArray() {
+			return mArray;
+		}
+
+		@Override
+		public boolean accept(SmbFile file) throws SmbException {
+			final int type = file.getType();
+			if (type == SmbFile.TYPE_FILESYSTEM || type == SmbFile.TYPE_SHARE) {
+				CifsFileWrapper fw = new CifsFileWrapper(file, mAuth);
+				if (mUserFilter == null || mUserFilter.accept(fw)) {
+					mArray.add(fw);
+					return true;
+				} else {
+					return false;					
+				}
+			} else {
+				return false;
+			}
+		}};
+	
 
 	@Override
-	public FileWrapper[] listFiles(FileWrapperFilter filter) throws SmbException, MalformedURLException {
-		SmbFile[] files = mFile.listFiles();
-		ArrayList<FileWrapper> list = new ArrayList<FileWrapper>();
-		//FileWrapper[] wrappers = new FileWrapper[files.length];
-		for(SmbFile f: files) {
-			CifsFileWrapper w = new CifsFileWrapper(f, mAuth);
-			if (filter.accept(w)) {
-				list.add(w);
-			}
-		}
+	public FileWrapper[] listFiles() throws SmbException, MalformedURLException {
+		SimpleFilter filter = new SimpleFilter(null);
+//		SmbFile[] files = mFile.listFiles(filter);
+		mFile.listFiles(filter);
+		ArrayList<FileWrapper> list = filter.getArray();
 		FileWrapper[] wrappers = new FileWrapper[list.size()];
 		for(int i = 0; i < list.size(); i++)
 			wrappers[i] = list.get(i);
 		return wrappers;
+
+//		FileWrapper[] wrappers = new FileWrapper[files.length];
+//		for(int i = 0; i < files.length; i++) {
+//			CifsFileWrapper w = new CifsFileWrapper(files[i], mAuth);
+//			wrappers[i] = w;
+//		}
+//		return wrappers;
+	}
+
+	@Override
+	public FileWrapper[] listFiles(FileWrapperFilter userFilter) throws SmbException, MalformedURLException {
+		try {
+			SimpleFilter cifsFilter = new SimpleFilter(userFilter);
+			mFile.listFiles(cifsFilter);
+			ArrayList<FileWrapper> list = cifsFilter.getArray();
+
+//			SmbFile[] files = mFile.listFiles(filter);
+//			ArrayList<FileWrapper> list = new ArrayList<FileWrapper>();
+//			//FileWrapper[] wrappers = new FileWrapper[files.length];
+//			for(SmbFile f: files) {
+//				CifsFileWrapper w = new CifsFileWrapper(f, mAuth);
+//				if (filter.accept(w)) {
+//					list.add(w);
+//				}
+//			}
+			FileWrapper[] wrappers = new FileWrapper[list.size()];
+			for(int i = 0; i < list.size(); i++)
+				wrappers[i] = list.get(i);
+			return wrappers;
+		} catch (SmbAuthException e) {
+			return new FileWrapper[0];
+		} catch (Exception e) {
+			Logger.logError(e);
+			return new FileWrapper[0];
+		}
 	}
 
 	@Override

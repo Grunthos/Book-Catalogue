@@ -139,7 +139,9 @@ public class BackupManager {
 							resultingFile.getUnderlyingFile().delete();
 						tempFile.renameTo(resultingFile.getUnderlyingFile());
 						mBackupOk = true;
-						System.out.println("Finished " + resultingFile.getPathPretty() + ", size = " + resultingFile.getUnderlyingFile().getLength());
+						// Refresh the snapshot data
+						resultingFile = resultingFile.newSnapshot();
+						System.out.println("Finished " + resultingFile.getPathPretty() + ", size = " + resultingFile.getLength());
 					}
 				} catch (Exception e) {
 					Logger.logError(e);
@@ -183,12 +185,7 @@ public class BackupManager {
 				}
 				if (fragment.getActivity() instanceof OnBackupCompleteListener) {
 					OnBackupCompleteListener l = (OnBackupCompleteListener) fragment.getActivity();
-					try {
-						l.onBackupComplete(resultingFile.newSnapshot(), mBackupOk, fragment.isCancelled());
-					} catch (IOException e) {
-						Logger.logError(e);
-						fragment.showToast(R.string.unexpected_error);
-					}
+					l.onBackupComplete(resultingFile, mBackupOk, fragment.isCancelled());
 				}
 			}
 

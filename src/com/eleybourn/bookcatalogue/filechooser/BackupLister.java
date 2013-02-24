@@ -45,7 +45,7 @@ public class BackupLister extends FileLister {
 		@Override
 		public boolean accept(FileWrapper f) {
 			try {
-				return (f.isDirectory() && f.canWrite()) || (f.isFile() && mBackupFilePattern.matcher(f.getName()).find());
+				return (f.isDirectory()) || (f.isFile() && mBackupFilePattern.matcher(f.getName()).find());
 			} catch (IOException e) {
 				Logger.logError(e);
 				return false;

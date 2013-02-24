@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
+import jcifs.Config;
 import jcifs.smb.NtlmPasswordAuthentication;
 import jcifs.smb.SmbFile;
 
@@ -96,9 +97,12 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 //		return FileChooserFragment.newInstance(new LocalFileWrapper(new File(lastBackup)), getDefaultFileName());
 //		jcifs.Config.setProperty( "jcifs.netbios.wins", "10.0.0.20" );
 		NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication("albatross", "pjw", "PASSWORD");
+		Config.setProperty("jcifs.smb.client.snd_buf_size", "60416"); 
+	    Config.setProperty("jcifs.smb.client.rcv_buf_size", "60416"); 
+	    
 		//String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
 		//CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://thoth.local.rime.com.au/multimedia/", auth), auth);
-		CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://10.0.0.141/multimedia/", auth), auth);
+		CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://10.0.0.142/", auth), auth);
 		return FileChooserFragment.newInstance(new FileSnapshot(null, root), getDefaultFileName());
 	}
 
