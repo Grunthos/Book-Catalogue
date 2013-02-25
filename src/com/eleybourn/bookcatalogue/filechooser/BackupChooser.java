@@ -99,7 +99,9 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 		NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication("albatross", "pjw", "PASSWORD");
 		Config.setProperty("jcifs.smb.client.snd_buf_size", "60416"); 
 	    Config.setProperty("jcifs.smb.client.rcv_buf_size", "60416"); 
-	    
+	    Config.setProperty("jcifs.smb.client.dfs.disabled", "true"); 
+	    //Config.setProperty("jcifs.resolveOrder", "DNS"); 
+
 		//String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
 		//CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://thoth.local.rime.com.au/multimedia/", auth), auth);
 		CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://10.0.0.142/", auth), auth);
