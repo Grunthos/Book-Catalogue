@@ -718,7 +718,7 @@
     <!-- Button text on the Goodreads activity; only displayed after user has registered -->
     <string name="forget_credentials">Suppr. les données de connection</string>
     <!-- Extra text displayed on the Goodreads activity when a user HAS registered -->
-    <string name="Goodreads_auth_blurb_part4">Cette application est déjà autorisée auprès de Goodreads. Si vous souhaitez effacer
+    <string name="goodreads_auth_blurb_part4">Cette application est déjà autorisée auprès de Goodreads. Si vous souhaitez effacer
 		vos données de connection, vos pouvez cliquer sur le bouton ci-dessous. Mais, il est aussi
 		important  d\'enlever cette autoristation sur le site de Goodreads également.
 		\n\nForgetting the credentials here will remove the Goodreads option from the main application menu.</string>
@@ -787,6 +787,21 @@
     </string>
 
     <!-- End: Added/Updated in 5.0.2 -->
+
+    <!-- Begin: Added/Updated in 5.0.3 -->
+
+    <string name="new_in_503">
+		<![CDATA[
+			<p><b>Nouveau dans la version 5.0.3</b>\n\n
+				* Correction de bogue\n\n
+				* Mise à jour de la version françaises (Imkal)\n\n
+			</p>
+		]]>
+    </string>
+
+    <!-- End: Added/Updated in 5.0.3 -->
+    
+
 
     <!-- Begin: Added/Updated in [Next Version] -->
 
