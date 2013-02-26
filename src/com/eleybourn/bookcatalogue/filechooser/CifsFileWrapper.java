@@ -144,7 +144,7 @@ public class CifsFileWrapper implements FileWrapper {
 	}
 
 	@Override
-	public FileWrapper[] listFiles(FileWrapperFilter userFilter) throws SmbException, MalformedURLException {
+	public FileWrapper[] listFiles(FileWrapperFilter userFilter) throws IOException {
 		try {
 			SimpleFilter cifsFilter = new SimpleFilter(userFilter);
 			mFile.listFiles(cifsFilter);
@@ -163,11 +163,15 @@ public class CifsFileWrapper implements FileWrapper {
 			for(int i = 0; i < list.size(); i++)
 				wrappers[i] = list.get(i);
 			return wrappers;
-		} catch (SmbAuthException e) {
-			return new FileWrapper[0];
+//		} catch (SmbAuthException e) {
+//			Logger.logError(e);
+//			throw e;
+		} catch (IOException e) {
+			Logger.logError(e);
+			throw e;
 		} catch (Exception e) {
 			Logger.logError(e);
-			return new FileWrapper[0];
+			throw new RuntimeException("Unable to list files", e);
 		}
 	}
 

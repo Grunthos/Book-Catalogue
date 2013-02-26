@@ -9,6 +9,8 @@ import java.util.Comparator;
 
 import android.app.Activity;
 
+import com.eleybourn.bookcatalogue.R;
+import com.eleybourn.bookcatalogue.dialogs.MessageDialogFragment;
 import com.eleybourn.bookcatalogue.filechooser.FileWrapper.FileWrapperFilter;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
@@ -64,9 +66,14 @@ public abstract class FileLister implements FragmentTask {
 	@Override
 	public void onFinish(SimpleTaskQueueProgressFragment fragment, Exception exception) {
 		// Display it in UI thread.
-		Activity a = fragment.getActivity();
-		if (a != null && a instanceof FileListerListener) {
-			((FileListerListener)a).onGotFileList(mRoot, dirs);
+		if (exception == null) {
+			Activity a = fragment.getActivity();
+			if (a != null && a instanceof FileListerListener) {
+				((FileListerListener)a).onGotFileList(mRoot, dirs);
+			}			
+		} else {
+			MessageDialogFragment frag = MessageDialogFragment.newInstance(0, R.string.failed, exception.getMessage(), R.string.ok, 0, 0);
+			frag.show(fragment.getActivity().getSupportFragmentManager(), null);
 		}
 	}
 

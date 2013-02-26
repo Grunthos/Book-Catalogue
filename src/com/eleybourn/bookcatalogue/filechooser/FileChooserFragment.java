@@ -25,6 +25,7 @@ import java.util.ArrayList;
 
 import android.app.Activity;
 import android.content.Context;
+import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
@@ -215,6 +216,16 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		protected void onListChanged() {
 			// Just ignore it. They never change.
 		};
+
+		/**
+		 * Cover a bug in Android/Sherlock
+		 */
+		@Override
+		public void unregisterDataSetObserver(DataSetObserver observer) {
+		    if (observer != null) {
+		        super.unregisterDataSetObserver(observer);
+		    }
+		}	
 	}
 
 	/** 
