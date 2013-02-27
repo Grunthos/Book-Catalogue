@@ -93,19 +93,27 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 	@Override
 	protected FileChooserFragment getChooserFragment() throws IOException {
 		BookCataloguePreferences prefs = BookCatalogueApp.getAppPreferences();
-//		String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
-//		return FileChooserFragment.newInstance(new LocalFileWrapper(new File(lastBackup)), getDefaultFileName());
-//		jcifs.Config.setProperty( "jcifs.netbios.wins", "10.0.0.20" );
-		NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication("albatross", "pjw", "PASSWORD");
-		Config.setProperty("jcifs.smb.client.snd_buf_size", "60416"); 
-	    Config.setProperty("jcifs.smb.client.rcv_buf_size", "60416"); 
-	    Config.setProperty("jcifs.smb.client.dfs.disabled", "true"); 
-	    //Config.setProperty("jcifs.resolveOrder", "DNS"); 
+		FileWrapper root;
+		
+		if (false) {
+			File lastBackup = new File(prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath()));
+			if (lastBackup.isDirectory()) {
+				root = new LocalFileWrapper(new File(lastBackup.getPath() + "/" + getDefaultFileName()));
+			} else {
+				root = new LocalFileWrapper(new File(lastBackup.getParent() + "/" + getDefaultFileName()));
+			}
+		} else {
+			NtlmPasswordAuthentication auth = new NtlmPasswordAuthentication("albatross", "pjw", "PASSWORD");
+			Config.setProperty("jcifs.smb.client.snd_buf_size", "60416"); 
+		    Config.setProperty("jcifs.smb.client.rcv_buf_size", "60416"); 
+		    Config.setProperty("jcifs.smb.client.dfs.disabled", "true"); 
+		    //Config.setProperty("jcifs.resolveOrder", "DNS"); 
+		    //jcifs.Config.setProperty( "jcifs.netbios.wins", "10.0.0.20" );
+		    root = new CifsFileWrapper(new SmbFile("smb://10.0.0.142/", auth), auth);
+		}
 
-		//String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
-		//CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://thoth.local.rime.com.au/multimedia/", auth), auth);
-		CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://10.0.0.142/", auth), auth);
-		return FileChooserFragment.newInstance(new FileSnapshot(root), getDefaultFileName());
+	    
+	    return FileChooserFragment.newInstance(new FileSnapshot(root), getDefaultFileName());
 	}
 
 	/**
