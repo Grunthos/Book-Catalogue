@@ -46,6 +46,7 @@ import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.FragmentTask;
 import com.eleybourn.bookcatalogue.widgets.SimpleListAdapter;
+import com.eleybourn.bookcatalogue.widgets.FastScroller.SectionIndexerV2;
 import com.eleybourn.bookcatalogue.widgets.SimpleListAdapter.ViewProvider;
 
 /**
@@ -156,7 +157,13 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		}
 		@Override
 		public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws Exception {
-			mPath = new FileSnapshot(mPath.getUnderlyingFile().getParentFile());	
+			FileWrapper wrap = mPath.getUnderlyingFile().getParentFile();
+			if (wrap != null) {
+				mPath = new FileSnapshot(mPath.getUnderlyingFile().getParentFile());	
+			} else {
+				mPath = null;
+				fragment.showToast(R.string.no_parent_directory_found);
+			}
 		}
 
 		@Override
@@ -165,7 +172,9 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 				Logger.logError(exception);
 				fragment.showToast(R.string.unexpected_error);
 			} else {
-				tellActivityPathChanged(fragment.getActivity(), mPath);				
+				if (mPath != null) {
+					tellActivityPathChanged(fragment.getActivity(), mPath);				
+				}
 			}
 		}
 		
@@ -203,7 +212,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	 * 
 	 * @author pjw
 	 */
-	public class DirectoryAdapter extends SimpleListAdapter<FileListItem> {
+	public class DirectoryAdapter extends SimpleListAdapter<FileListItem> implements SectionIndexerV2 {
 		boolean series = false;
 
 		/**
@@ -256,6 +265,15 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		    if (observer != null) {
 		        super.unregisterDataSetObserver(observer);
 		    }
+		}
+
+		@Override
+		public String[] getSectionTextForPosition(int position) {
+			if (position < 0 || position >= getCount())
+				return null;
+			FileListItem item = this.getItem(position);
+			final String name = item.getUnderlyingFile().getName();
+			return new String[] {name.substring(0,1).toUpperCase(), name};
 		}	
 	}
 
@@ -287,9 +305,9 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	@Override
 	public void onGotFileList(FileSnapshot root, ArrayList<FileListItem> list) {
 		String prettyPath;
-		prettyPath = mRootPath.getPathPretty();
-
 		mRootPath = root;
+
+		prettyPath = mRootPath.getPathPretty();
 		((TextView) getView().findViewById(R.id.path)).setText(prettyPath);
 
 		// Setup and display the list
@@ -298,6 +316,11 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		DirectoryAdapter adapter = new DirectoryAdapter(getActivity(), 0, mList);
 		ListView lv = ((ListView) getView().findViewById(android.R.id.list));
 		lv.setAdapter(adapter);
+
+		// Force a rebuild
+		lv.setFastScrollEnabled(false);
+		lv.setFastScrollEnabled(true);
+
 	}
 
 }
