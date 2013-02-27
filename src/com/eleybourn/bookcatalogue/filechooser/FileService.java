@@ -76,4 +76,11 @@ public interface FileService {
 	 * @param requestedServer	The server we want to access
 	 */
 	public void prepareServer(Activity parent, FileSnapshot requestedServer);
+
+	/**
+	 * So it appears nice in lists
+	 *
+	 * @return
+	 */
+	public String toString();
 }

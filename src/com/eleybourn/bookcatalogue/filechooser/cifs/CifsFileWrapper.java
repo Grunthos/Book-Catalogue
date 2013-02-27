@@ -1,4 +1,4 @@
-package com.eleybourn.bookcatalogue.filechooser;
+package com.eleybourn.bookcatalogue.filechooser.cifs;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,6 +9,8 @@ import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper;
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper.FileWrapperFilter;
 import com.eleybourn.bookcatalogue.utils.Logger;
 
 import jcifs.smb.NtlmPasswordAuthentication;

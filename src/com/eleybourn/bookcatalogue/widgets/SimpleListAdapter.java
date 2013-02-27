@@ -22,6 +22,7 @@ package com.eleybourn.bookcatalogue.widgets;
 import java.util.ArrayList;
 
 import android.content.Context;
+import android.database.DataSetObserver;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -156,6 +157,11 @@ public abstract class SimpleListAdapter<T> extends ArrayAdapter<T> {
 	}
 
 	@Override
+	public View getDropDownView(int position, View convertView, ViewGroup parent) {
+		return getView(position, convertView, parent);
+	}
+
+	@Override
     public View getView(int position, View convertView, ViewGroup parent) {
         // Get the object, if not null, do some processing
         final T o = this.getItem(position);
@@ -262,4 +268,13 @@ public abstract class SimpleListAdapter<T> extends ArrayAdapter<T> {
 		return (Integer) o;
 	}
 
+	/**
+	 * Cover a bug in Android/Sherlock
+	 */
+	@Override
+	public void unregisterDataSetObserver(DataSetObserver observer) {
+	    if (observer != null) {
+	        super.unregisterDataSetObserver(observer);
+	    }
+	}
 }

@@ -1,4 +1,4 @@
-package com.eleybourn.bookcatalogue.filechooser;
+package com.eleybourn.bookcatalogue.filechooser.local;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper;
+import com.eleybourn.bookcatalogue.filechooser.FileWrapper.FileWrapperFilter;
 
 public class LocalFileWrapper implements FileWrapper {
 	private static final long serialVersionUID = -1956193002020131898L;
@@ -133,6 +136,11 @@ public class LocalFileWrapper implements FileWrapper {
 	@Override
 	public FileWrapper getSibling(String siblingName) throws IOException {
 		return getParentFile().getChild(siblingName);
+	}
+	
+	@Override
+	public String toString() {
+		return getName();
 	}
 
 }

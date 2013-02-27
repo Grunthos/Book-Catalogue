@@ -6,11 +6,20 @@
     android:orientation="vertical"
     android:paddingLeft="@dimen/padding_border" >
 
+    <Spinner
+        android:id="@+id/service_spinner"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:background="#00000000" />
+
     <RelativeLayout
         android:id="@+id/path_details"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/service_spinner"
         android:focusableInTouchMode="true" >
 
         <ImageView
@@ -40,10 +49,10 @@
             android:id="@+id/path"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:layout_alignWithParentIfMissing="true"
             android:layout_centerVertical="true"
             android:layout_toLeftOf="@+id/create"
             android:layout_toRightOf="@+id/up"
-            android:layout_alignWithParentIfMissing="true"
             android:gravity="center_vertical"
             android:text="/foo/bar/gum"
             android:textAppearance="?android:attr/textAppearanceMedium"
@@ -63,11 +72,11 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp"
         android:text="fred.bcbk"
         android:textAppearance="?android:attr/textAppearanceMedium"
-        tools:ignore="HardcodedText"
-        android:paddingTop="10dp"
-        android:paddingBottom="10dp" />
+        tools:ignore="HardcodedText" />
 
     <View
         android:id="@+id/footer_divider"
@@ -75,7 +84,7 @@
         android:layout_height="1dp"
         android:layout_above="@+id/file_name"
         android:background="@drawable/main_menu_header_divider" />
-    
+
     <com.eleybourn.bookcatalogue.widgets.FastScrollListView
         android:id="@+id/android:list"
         android:layout_width="fill_parent"

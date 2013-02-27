@@ -1,4 +1,4 @@
-package com.eleybourn.bookcatalogue.filechooser;
+package com.eleybourn.bookcatalogue.filechooser.local;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import com.eleybourn.bookcatalogue.BookCatalogueApp;
 import com.eleybourn.bookcatalogue.BookCataloguePreferences;
 import com.eleybourn.bookcatalogue.R;
+import com.eleybourn.bookcatalogue.filechooser.FileService;
+import com.eleybourn.bookcatalogue.filechooser.FileSnapshot;
+import com.eleybourn.bookcatalogue.filechooser.FileService.OnServerPreparedListener;
 import com.eleybourn.bookcatalogue.utils.StorageUtils;
 
 import android.app.Activity;

@@ -32,7 +32,7 @@ import com.eleybourn.bookcatalogue.backup.tar.TarBackupContainer;
 import com.eleybourn.bookcatalogue.compat.BookCatalogueActivity;
 import com.eleybourn.bookcatalogue.filechooser.FileSnapshot;
 import com.eleybourn.bookcatalogue.filechooser.FileWrapper;
-import com.eleybourn.bookcatalogue.filechooser.LocalFileWrapper;
+import com.eleybourn.bookcatalogue.filechooser.local.LocalFileWrapper;
 import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;

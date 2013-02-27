@@ -32,15 +32,21 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.compat.BookCatalogueFragment;
 import com.eleybourn.bookcatalogue.filechooser.FileLister.FileListerListener;
+import com.eleybourn.bookcatalogue.filechooser.cifs.CifsFileService;
+import com.eleybourn.bookcatalogue.filechooser.local.LocalFileService;
 import com.eleybourn.bookcatalogue.utils.Logger;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
 import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
@@ -58,11 +64,19 @@ import com.eleybourn.bookcatalogue.widgets.SimpleListAdapter.ViewProvider;
  */
 public class FileChooserFragment extends BookCatalogueFragment implements FileListerListener {
 	private FileSnapshot mRootPath;
+	protected static final String ARG_FILE_SERVICE = "fileService";
 	protected static final String ARG_ROOT_PATH = "rootPath";
 	protected static final String ARG_FILE_NAME = "fileName";
 	protected static final String ARG_LIST = "list";
 	// Create an empty one in case we are rotated before generated.
 	protected ArrayList<FileListItem> mList = new ArrayList<FileListItem>();
+	private FileService mFileService;
+
+	private static final ArrayList<FileService> mFileServices = new ArrayList<FileService>();
+	static {
+		mFileServices.add(new LocalFileService());
+		mFileServices.add(new CifsFileService());
+	}
 
 	/**
 	 * Interface that the containing Activity must implement. Called when user changes path.
@@ -127,6 +141,11 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 			}
 		});
 
+		Spinner services = (Spinner) getView().findViewById(R.id.service_spinner);
+		FileServiceAdapter serviceAdapter = new FileServiceAdapter(getActivity(), R.layout.file_services_list_item, mFileServices); // android.R.layout.simple_list_item_1, mFileServices);
+		services.setAdapter(serviceAdapter);
+		int selectedService = 0;
+
 		// If it's new, just build from scratch, otherwise, get the saved directory and list
 		if (savedInstanceState == null) {
 			mRootPath = (FileSnapshot) getArguments().getSerializable(ARG_ROOT_PATH);
@@ -139,7 +158,33 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 			mRootPath = (FileSnapshot) savedInstanceState.getSerializable(ARG_ROOT_PATH);
 			ArrayList<FileListItem> list = savedInstanceState.getParcelableArrayList(ARG_LIST);
 			this.onGotFileList(mRootPath, list);
+			String prefService =  savedInstanceState.getString(ARG_FILE_SERVICE);
+			if (prefService != null) {
+				for(int i = 0; i < mFileServices.size(); i++) {
+					FileService s = mFileServices.get(i);
+					if (s.getName().equals(prefService)) {
+						selectedService = i;
+						break;
+					}
+				}
+			}
 		}
+
+		mFileService = mFileServices.get(selectedService);
+		services.setSelection(selectedService);
+		services.setOnItemSelectedListener(new OnItemSelectedListener() {
+
+			@Override
+			public void onItemSelected(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void onNothingSelected(AdapterView<?> arg0) {
+				// TODO Auto-generated method stub
+				
+			}});
 	}
 
 	/**
@@ -205,6 +250,9 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		super.onSaveInstanceState(state);
 		state.putSerializable(ARG_ROOT_PATH, mRootPath);
 		state.putParcelableArrayList(ARG_LIST, mList);
+		if (mFileService != null) {
+			state.putString(ARG_FILE_SERVICE, mFileService.getName());
+		}
 	}
 
 	/**
@@ -257,16 +305,6 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 			// Just ignore it. They never change.
 		};
 
-		/**
-		 * Cover a bug in Android/Sherlock
-		 */
-		@Override
-		public void unregisterDataSetObserver(DataSetObserver observer) {
-		    if (observer != null) {
-		        super.unregisterDataSetObserver(observer);
-		    }
-		}
-
 		@Override
 		public String[] getSectionTextForPosition(int position) {
 			if (position < 0 || position >= getCount())
@@ -277,6 +315,47 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		}	
 	}
 
+	/**
+	 * List Adapter for FileDetails objects
+	 * 
+	 * @author pjw
+	 */
+	public class FileServiceAdapter extends SimpleListAdapter<FileService> {
+		boolean series = false;
+
+		/**
+		 * 
+		 * Pass the parameters directly to the overridden function
+		 * 
+		 * @param context
+		 * @param layout
+		 * @param cursor
+		 * @param from
+		 * @param to
+		 */
+		public FileServiceAdapter(Context context, int rowViewId, ArrayList<FileService> items) {
+			super(context, rowViewId, items);
+		}
+
+		@Override
+		protected void onSetupView(FileService service, int position, View target) {
+			TextView text = (TextView) target.findViewById(R.id.service_name);
+			text.setText(service.getName());
+		}
+
+		@Override
+		protected void onRowClick(FileService service, int position, View v) {
+			if (service != null) {
+			}
+		};
+
+//		@Override
+//		public View getDropDownView(int position, View convertView, ViewGroup parent) {
+//			View v = super.getDropDownView(position, convertView, parent);
+//			v.set
+//		}
+	}
+	
 	/** 
 	 * Accessor
 	 * 
