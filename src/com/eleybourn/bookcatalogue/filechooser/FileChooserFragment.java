@@ -42,6 +42,9 @@ import com.eleybourn.bookcatalogue.R;
 import com.eleybourn.bookcatalogue.compat.BookCatalogueFragment;
 import com.eleybourn.bookcatalogue.filechooser.FileLister.FileListerListener;
 import com.eleybourn.bookcatalogue.utils.Logger;
+import com.eleybourn.bookcatalogue.utils.SimpleTaskQueue.SimpleTaskContext;
+import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment;
+import com.eleybourn.bookcatalogue.utils.SimpleTaskQueueProgressFragment.FragmentTask;
 import com.eleybourn.bookcatalogue.widgets.SimpleListAdapter;
 import com.eleybourn.bookcatalogue.widgets.SimpleListAdapter.ViewProvider;
 
@@ -70,14 +73,19 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	}
 
 	/** Create a new chooser fragment 
-	 * @throws IOException */
+	 * 
+	 * IMPORTANT NOTE: If this is called on the UI thread it will cause crashes due to network traffic
+	 * in Android 3+.
+	 * 
+	 * @throws IOException
+	 */
 	public static FileChooserFragment newInstance(FileSnapshot root, String fileName) throws IOException {
 		FileSnapshot path;
 		// Turn the passed File into a directory
 		if (root.isDirectory()) {
 			path = root;
 		} else {
-			path = root.getParentFile();
+			path = new FileSnapshot(root.getUnderlyingFile().getParentFile());
 		}
 		
 		// Build the fragment and save the details
@@ -114,7 +122,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 		((ImageView) root.findViewById(R.id.up)).setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				handleUp();
+				SimpleTaskQueueProgressFragment.runTaskWithProgress(getActivity(), 0, new DirectoryUpTask(mRootPath), true, 0);
 			}
 		});
 
@@ -125,7 +133,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 			EditText et = (EditText) getView().findViewById(R.id.file_name);
 			et.setText(fileName);
 			((TextView) getView().findViewById(R.id.path)).setText(mRootPath.getPathPretty());				
-			tellActivityPathChanged();
+			tellActivityPathChanged(getActivity(), mRootPath);
 		} else {
 			mRootPath = (FileSnapshot) savedInstanceState.getSerializable(ARG_ROOT_PATH);
 			ArrayList<FileListItem> list = savedInstanceState.getParcelableArrayList(ARG_LIST);
@@ -136,26 +144,49 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 	/**
 	 * Convenience method to tell our activity the path has changed.
 	 */
-	private void tellActivityPathChanged() {	
-		((PathChangedListener)getActivity()).onPathChanged(mRootPath);
+	private static void tellActivityPathChanged(Activity a, FileSnapshot newRoot) {	
+		((PathChangedListener)a).onPathChanged(newRoot);
 	}
 
-	/**
-	 * Handle the 'Up' action
-	 */
-	private void handleUp() {
-		FileSnapshot parent = null;
+	private static class DirectoryUpTask implements FragmentTask {
+		FileSnapshot mPath;
 
-		parent = mRootPath.getParentFile();			
-
-		if (parent == null) {
-			Toast.makeText(getActivity(), R.string.no_parent_directory_found, Toast.LENGTH_LONG).show();
-			return;
+		public DirectoryUpTask(FileSnapshot path) {
+			mPath = path;
 		}
-		mRootPath = parent;
+		@Override
+		public void run(SimpleTaskQueueProgressFragment fragment, SimpleTaskContext taskContext) throws Exception {
+			mPath = new FileSnapshot(mPath.getUnderlyingFile().getParentFile());	
+		}
+
+		@Override
+		public void onFinish(SimpleTaskQueueProgressFragment fragment, Exception exception) {
+			if (exception != null) {
+				Logger.logError(exception);
+				fragment.showToast(R.string.unexpected_error);
+			} else {
+				tellActivityPathChanged(fragment.getActivity(), mPath);				
+			}
+		}
 		
-		tellActivityPathChanged();
 	}
+
+//	/**
+//	 * Handle the 'Up' action
+//	 */
+//	private void handleUp() {
+//		FileSnapshot parent = null;
+//
+//		parent = mRootPath.getParentFile();			
+//
+//		if (parent == null) {
+//			Toast.makeText(getActivity(), R.string.no_parent_directory_found, Toast.LENGTH_LONG).show();
+//			return;
+//		}
+//		mRootPath = parent;
+//		
+//		tellActivityPathChanged();
+//	}
 
 	/**
 	 * Save our root path and list
@@ -203,8 +234,8 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 				fileName = fileDetails.getUnderlyingFile().getName();
 				
 				if (isDir) {
-					mRootPath = fileDetails.getUnderlyingFile();
-					tellActivityPathChanged();
+					//mRootPath = fileDetails.getUnderlyingFile();
+					tellActivityPathChanged(getActivity(), fileDetails.getUnderlyingFile());
 				} else {
 					EditText et = (EditText) FileChooserFragment.this.getView().findViewById(R.id.file_name);
 					et.setText(fileName);

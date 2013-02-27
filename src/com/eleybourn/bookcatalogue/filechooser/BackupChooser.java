@@ -105,7 +105,7 @@ public class BackupChooser extends FileChooser implements OnMessageDialogResultL
 		//String lastBackup = prefs.getString(BookCataloguePreferences.PREF_LAST_BACKUP_FILE, StorageUtils.getSharedStoragePath());
 		//CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://thoth.local.rime.com.au/multimedia/", auth), auth);
 		CifsFileWrapper root = new CifsFileWrapper(new SmbFile("smb://10.0.0.142/", auth), auth);
-		return FileChooserFragment.newInstance(new FileSnapshot(null, root), getDefaultFileName());
+		return FileChooserFragment.newInstance(new FileSnapshot(root), getDefaultFileName());
 	}
 
 	/**

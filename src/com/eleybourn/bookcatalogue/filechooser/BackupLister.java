@@ -69,7 +69,7 @@ public class BackupLister extends FileLister {
 
 		if (files != null) {
 			for (FileWrapper f : files) {
-				BackupFileDetails fd = new BackupFileDetails(new FileSnapshot(this.getRoot(), f));
+				BackupFileDetails fd = new BackupFileDetails(new FileSnapshot(f));
 				dirs.add(fd);
 				String fileName = null;
 				try {

@@ -1,5 +1,6 @@
 package com.eleybourn.bookcatalogue.filechooser;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import android.app.Activity;
@@ -47,16 +48,32 @@ public interface FileService {
 
 	public String getName(); // eg. "Local Files"; "CIFS/SMB/Windows"
 	public boolean canAdd(); // can add new services; 
-	// Get a list of server connections to display to user
-	public ArrayList<FileSnapshot> getFavourites();
-	// Present the user with a setup dialog to add a new server and when done fire the
-	// onServerAdded event.
-	// Local files can throw an exception.
-	// For CIFS it should ask for host/domain/password.
+
+	/**
+	 * Get a list of server connections to display to user
+	 * 
+	 * @return
+	 */
+	public ArrayList<FileSnapshot> getFavourites(String defaultPath, String defaultFileName) throws IOException;
+
+	/** 
+	 * Present the user with a setup dialog to add a new server and when done fire the
+	 * onServerAdded event.
+	 * Local files can throw an exception.
+	 * For CIFS it should ask for host/domain/password.
+	 *
+	 * @param parent
+	 */
 	public void addServer(Activity parent);
-	// Use the requested server to do whatever is necessary to actually connect to the server (eg. 
-	// display a password dialog, then fire the OnServerPreparedListener() event.
-	// For local files, it can just be a pass-through.
-	// For CIFS, it might popup the server details and ask for a password.
+	/**
+	 * Use the requested server to do whatever is necessary to actually connect to the server
+	 * (eg. display a password dialog), then fire the OnServerPreparedListener() event.
+	 * 
+	 * For local files, it can just be a pass-through.
+	 * For CIFS, it might popup the server details and ask for a password.
+	 * 
+	 * @param parent			Activity calling this action
+	 * @param requestedServer	The server we want to access
+	 */
 	public void prepareServer(Activity parent, FileSnapshot requestedServer);
 }

@@ -25,7 +25,7 @@ public class CifsFileWrapper implements FileWrapper {
 	private SmbFile mFile;
 	private NtlmPasswordAuthentication mAuth;
 
-	public CifsFileWrapper(SmbFile file, NtlmPasswordAuthentication auth) throws SmbException {
+	public CifsFileWrapper(SmbFile file, NtlmPasswordAuthentication auth) {
 		mAuth = auth;
 		mFile = file;
 	}
@@ -91,7 +91,7 @@ public class CifsFileWrapper implements FileWrapper {
 	}
 
 	@Override
-	public FileWrapper getChild(String fileName) throws MalformedURLException, SmbException {
+	public FileWrapper getChild(String fileName) throws SmbException, MalformedURLException {
 		return new CifsFileWrapper(new SmbFile(mFile.getPath() + "/" + fileName, mAuth), mAuth);
 	}
 
@@ -207,5 +207,10 @@ public class CifsFileWrapper implements FileWrapper {
 	
 	public SmbFile getFile() {
 		return mFile;
+	}
+
+	@Override
+	public FileWrapper getSibling(String siblingName) throws SmbException, MalformedURLException {
+		return getParentFile().getChild(siblingName);
 	}
 }

@@ -79,7 +79,9 @@ public class BackupManager {
 	 */
 	private static FileSnapshot cleanupFile(FileSnapshot requestedFile) throws IOException {
 		if (!requestedFile.getName().toUpperCase().endsWith(".BCBK")) {
-			return requestedFile.getParentFile().getChild(requestedFile.getName() + ".bcbk");
+			FileWrapper backupFile = requestedFile.getUnderlyingFile().getSibling(requestedFile.getName() + ".bcbk");
+			return new FileSnapshot(backupFile);
+			//return requestedFile.getParentFile().getChild(requestedFile.getName() + ".bcbk");
 		} else {
 			return requestedFile;
 		}
@@ -108,7 +110,7 @@ public class BackupManager {
 
 				try {
 					resultingFile = cleanupFile(requestedFile);
-					tempFile = requestedFile.getParentFile().getChild(resultingFile.getName() + ".tmp").getUnderlyingFile();
+					tempFile = requestedFile.getUnderlyingFile().getSibling(resultingFile.getName() + ".tmp");
 
 					System.out.println("Starting " + tempFile.getPathPretty());
 					TarBackupContainer bkp = new TarBackupContainer(tempFile);

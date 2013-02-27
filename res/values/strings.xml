@@ -839,6 +839,12 @@ and you can edit the book via the options menu using the menu button or overflow
     <!-- End: Added/Updated in 5.0.3 -->
     
     <!-- Begin: Added/Updated in [Next Version] -->
+
+    <!-- Short Name used to refer to files stored locally on the ablet/phone -->
+    <string name="local_files">Local Files</string>    
+    <!-- Short Name used to refer to files stored remotely on a Windows share (CIFS is the underlying protocol) -->
+    <string name="windows_cifs_shares">Windows (CIFS) Shares</string>    
+
     <!-- End: Added/Updated in [Next Version] -->
 
 </resources>

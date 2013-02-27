@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -127,6 +128,11 @@ public class LocalFileWrapper implements FileWrapper {
 	@Override
 	public boolean canWrite() {
 		return mFile.canWrite();
+	}
+
+	@Override
+	public FileWrapper getSibling(String siblingName) throws IOException {
+		return getParentFile().getChild(siblingName);
 	}
 
 }

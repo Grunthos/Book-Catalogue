@@ -16,7 +16,6 @@ public class FileSnapshot implements Parcelable, Serializable {
 
 	// IMPORTANT NOTE: If fields are added, then writeToParcelable and the parcelable constructor
 	// must also be modified.
-	private final FileSnapshot mParent;
 	private final FileWrapper mFileWrapper;
 
 	private final boolean mIsDirectory;
@@ -28,10 +27,9 @@ public class FileSnapshot implements Parcelable, Serializable {
 	private final long mLength;
 	private final long mLastModified;
 
-	public FileSnapshot(FileSnapshot parent, FileWrapper file) throws IOException {
+	public FileSnapshot(FileWrapper file) throws IOException {
 		// IMPORTANT NOTE: If fields are added, then writeToParcelable and the parcelable constructor
 		// must also be modified.
-		mParent = parent;
 		mFileWrapper = file;
 		mExists = file.exists();
 		mIsDirectory = file.isDirectory();
@@ -49,7 +47,7 @@ public class FileSnapshot implements Parcelable, Serializable {
 	}
 
 	public FileSnapshot newSnapshot() throws IOException {
-		return new FileSnapshot(mParent, mFileWrapper);
+		return new FileSnapshot(mFileWrapper);
 	}
 
 	/** Get the underlying File object */
@@ -94,19 +92,18 @@ public class FileSnapshot implements Parcelable, Serializable {
 	public String getPathPretty() {
 		return mPathPretty;
 	}
-	/** Snapshot data */
-	public FileSnapshot getParentFile() {
-		return mParent;
-	}
+//	/** Snapshot data */
+//	public FileSnapshot getParentFile() {
+//		return mParent;
+//	}
 
 	public FileSnapshot getChild(String fileName) throws IOException {
-		return new FileSnapshot(this, mFileWrapper.getChild(fileName));
+		return new FileSnapshot(mFileWrapper.getChild(fileName));
 	}
 
 	public FileSnapshot(Parcel in) {
 		int version = in.readInt();
 	
-		mParent = (FileSnapshot) in.readSerializable();
 		mFileWrapper = (FileWrapper) in.readSerializable();
 		
 		mExists = in.readByte() == (byte)1;
@@ -129,7 +126,6 @@ public class FileSnapshot implements Parcelable, Serializable {
 	@Override
 	public void writeToParcel(Parcel dest, int flags) {
 		dest.writeInt(1);
-		dest.writeSerializable(mParent);
 		dest.writeSerializable(mFileWrapper);
 		dest.writeByte( mExists ? (byte)1 : (byte)0 );
 		dest.writeByte( mIsDirectory ? (byte)1 : (byte)0 );

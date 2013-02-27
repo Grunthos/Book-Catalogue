@@ -32,4 +32,5 @@ public interface FileWrapper extends Serializable {
 	public boolean canWrite() throws IOException;
 	public void delete() throws IOException;
 	public void renameTo(FileWrapper newPath) throws IOException;
+	public FileWrapper getSibling(String siblingName) throws IOException;
 }
