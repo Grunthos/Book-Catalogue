@@ -83,7 +83,7 @@ public class CifsFileWrapper implements FileWrapper {
 	@Override
 	public CifsFileWrapper getParentFile() throws MalformedURLException, SmbException {
 		SmbFile parent = new SmbFile(mFile.getParent(), mAuth);
-		if (parent.getType() == SmbFile.TYPE_FILESYSTEM || parent.getType() == SmbFile.TYPE_SHARE) {
+		if (parent.getType() == SmbFile.TYPE_FILESYSTEM || parent.getType() == SmbFile.TYPE_SHARE || parent.getType() == SmbFile.TYPE_SERVER) {
 			return new CifsFileWrapper(parent, mAuth);
 		} else {
 			return null;
