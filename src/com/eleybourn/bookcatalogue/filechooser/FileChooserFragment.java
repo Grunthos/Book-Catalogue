@@ -141,9 +141,18 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 			}
 		});
 
-		Spinner services = (Spinner) getView().findViewById(R.id.service_spinner);
-		FileServiceAdapter serviceAdapter = new FileServiceAdapter(getActivity(), R.layout.file_services_list_item, mFileServices); // android.R.layout.simple_list_item_1, mFileServices);
-		services.setAdapter(serviceAdapter);
+		final Spinner services = (Spinner) getView().findViewById(R.id.file_service);
+		//FileServiceAdapter serviceAdapter = new FileServiceAdapter(getActivity(), R.layout.file_services_list_item, mFileServices); // android.R.layout.simple_list_item_1, mFileServices);
+		//services.setAdapter(serviceAdapter);
+		ArrayList<String> names = new ArrayList<String>() ;
+		for(FileService s: mFileServices) {
+			names.add(s.getName());
+		}
+		
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this.getActivity(), android.R.layout.simple_list_item_1, names);
+		//adapter.setDropDownViewResource(android.R.layout.simple_list_item_1);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		services.setAdapter(adapter);
 		int selectedService = 0;
 
 		// If it's new, just build from scratch, otherwise, get the saved directory and list
@@ -169,6 +178,15 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 				}
 			}
 		}
+
+		ImageView bookshelfDown = (ImageView) getView().findViewById(R.id.file_service_button);
+		bookshelfDown.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				services.performClick();
+				return;
+			}
+		});
 
 		mFileService = mFileServices.get(selectedService);
 		services.setSelection(selectedService);
@@ -339,7 +357,7 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 
 		@Override
 		protected void onSetupView(FileService service, int position, View target) {
-			TextView text = (TextView) target.findViewById(R.id.service_name);
+			TextView text = (TextView) target.findViewById(android.R.id.text1);
 			text.setText(service.getName());
 		}
 
@@ -349,11 +367,11 @@ public class FileChooserFragment extends BookCatalogueFragment implements FileLi
 			}
 		};
 
-//		@Override
-//		public View getDropDownView(int position, View convertView, ViewGroup parent) {
-//			View v = super.getDropDownView(position, convertView, parent);
-//			v.set
-//		}
+		@Override
+		public View getDropDownView(int position, View convertView, ViewGroup parent) {
+			View v = super.getDropDownView(position, convertView, parent);
+			return v;
+		}
 	}
 	
 	/** 

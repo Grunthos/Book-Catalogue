@@ -23,6 +23,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
+import android.app.Activity;
+import android.support.v4.app.FragmentActivity;
+
 import com.eleybourn.bookcatalogue.BookCatalogueApp;
 import com.eleybourn.bookcatalogue.BookCataloguePreferences;
 import com.eleybourn.bookcatalogue.R;
@@ -94,7 +97,7 @@ public class BackupManager {
 	 * We use a FragmentTask so that long actions do not occur in the UI thread.
 	 * @throws IOException 
 	 */
-	public static void backupCatalogue(final BookCatalogueActivity context, final FileSnapshot requestedFile, int taskId) throws IOException {
+	public static void backupCatalogue(final FragmentActivity context, final FileSnapshot requestedFile, int taskId) throws IOException {
 		//final FileWrapper tempFile = resultingFile.getParentFile().getChild(resultingFile.getName() + ".tmp");
 
 		FragmentTask task = new FragmentTaskAbstract() {
