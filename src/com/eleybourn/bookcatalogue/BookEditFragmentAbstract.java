@@ -65,6 +65,7 @@ public abstract class BookEditFragmentAbstract extends BookCatalogueFragment imp
 		public void setRowId(Long id);
 		public ArrayList<String> getFormats();
 		public ArrayList<String> getGenres();
+		public ArrayList<String> getLanguages();
 		public ArrayList<String> getPublishers();
 	}
 
@@ -308,6 +309,9 @@ public abstract class BookEditFragmentAbstract extends BookCatalogueFragment imp
 
 		// Check genre
 		showHideField(hideIfEmpty, R.id.genre, R.id.lbl_genre, R.id.row_genre);
+
+		// Check language
+		showHideField(hideIfEmpty, R.id.language, R.id.lbl_language, R.id.row_language);
 
 		// Check ISBN
 		showHideField(hideIfEmpty, R.id.isbn, R.id.row_isbn);
