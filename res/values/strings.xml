@@ -867,7 +867,19 @@ and you can edit the book via the options menu using the menu button or overflow
     <string name="local_files">Local Files</string>    
     <!-- Short Name used to refer to files stored remotely on a Windows share (CIFS is the underlying protocol) -->
     <string name="windows_cifs_shares">Windows (CIFS) Shares</string>    
-
+    
+    <!-- Boolean option to enable DFS support for CIFS environments -->
+    <string name="dfs_support">DFS Support</string>
+    <!-- Value for boolean setting that are either enabled or disabled -->
+    <string name="enabled">Enabled</string>
+    <!-- Value for boolean setting that are either enabled or disabled -->
+    <string name="disabled">Disabled</string>
+    
+    <!-- Warning used when enabling DFS in Advanced Options -->
+    <string name="enable_dfs_warning">Do not enable this unless you know what you are doing!\n\n
+        		If this option is enabled and your network does not support DFS then all CIFS network
+        		operations will be much slower. Nothing will fail, but performance will suffer.</string>    
+    
     <!-- End: Added/Updated in [Next Version] -->
 
 </resources>
