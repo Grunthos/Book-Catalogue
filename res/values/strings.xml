@@ -854,13 +854,40 @@ and you can edit the book via the options menu using the menu button or overflow
     
     <!-- End: Added/Updated in 5.0.4 -->
 
-    <!-- Begin: Added/Updated in 5.1.0 -->
+    <!-- Begin: Added/Updated in 5.0.5 -->
     <!--  New preference to override the default method used to generate bookslists as defined by API level -->
     <string name="booklist_generation">Book List Generation Option</string>
     <!-- Option listed under "booklist_generation" referring to a very conservative way of generating bookslists -->
-    <string name="compatibility_mode">Compatibility Mode</string>
-    <!-- End: Added/Updated in 5.1.0 -->
+    <string name="force_compatibility_mode">Force Compatibility Mode</string>
+    <!-- Option listed under "booklist_generation" referring to a conservative way of generating bookslists -->
+    <string name="force_enhanced_compatibility_mode">Force Enhanced Compatibility Mode</string>
+    <!-- Option listed under "booklist_generation" referring to a conservative way of generating bookslists -->
+    <string name="force_fully_featured">Force Fully Featured</string>
+    <!-- Default Option listed under "booklist_generation" referring to a conservative way of generating bookslists -->
+    <string name="automatically_use_recommended_option">Automatically use recommended option</string>
+    
+    <string name="new_in_505">
+		<![CDATA[
+			<p><b>New in 5.0.5</b>\n\n
+				* "Added Date" List now sorted in reverse order \n\n
+				* French translation updates (Imkal)\n\n
+				* Bug fixes\n\n
+			</p>
+		]]>
+    </string>
+    
+    <!-- End: Added/Updated in 5.0.5 -->
 
+    <!-- Begin: Added/Updated in 5.0.8 -->
+    <string name="new_in_508">
+		<![CDATA[
+			<p><b>New in 5.0.8</b>\n\n
+				* German translation updates (Robert Wetzlmayr)\n\n
+			</p>
+		]]>
+    </string>
+    <!-- End: Added/Updated in 5.0.8 -->
+    
     <!-- Begin: Added/Updated in [Next Version] -->
 
     <!-- Short Name used to refer to files stored locally on the ablet/phone -->

@@ -815,10 +815,41 @@
     </string>
     <!-- End Added/Updated in 5.0.4 -->   
      
-  <!-- Begin: Added/Updated in Next version -->
-     
-     
-     
-  <!-- End: Added/Updated in [Next Version] -->
+    <!-- Begin: Added/Updated in 5.0.5 -->
+    
+    <!--  New preference to override the default method used to generate bookslists as defined by API level -->
+    <string name="booklist_generation">Option de Generation de la liste de livre</string>
+    
+    <!-- Option listed under "booklist_generation" referring to a very conservative way of generating bookslists -->
+    <!-- NOTE The English version was changed to "Force Compatibility Mode" -->
+    <string name="force_compatibility_mode">Mode Compatibilité actif</string>
+    
+    <!-- Option listed under "booklist_generation" referring to a conservative way of generating bookslists -->
+    <string name="force_enhanced_compatibility_mode">Mode Compatibilité avancé actif</string>
+    <!-- Option listed under "booklist_generation" referring to a conservative way of generating bookslists -->
+    <string name="force_fully_featured">Mode \'Toutes options\' actives</string>
+    <!-- Default Option listed under "booklist_generation" referring to a conservative way of generating bookslists -->
+    <string name="automatically_use_recommended_option">Utilisation automatique des recommandations</string>
+    
+    <string name="new_in_505">
+		<![CDATA[
+			<p><b>Nouveau dans la version 5.0.5</b>\n\n
+				* Tri décroissant sur la date d\'ajout \n\n
+				* Mise à jour de la version française(Imkal)\n\n
+				* Correction de bogues\n\n
+			</p>
+		]]>
+    </string>
+    <!-- End Added/Updated in 5.0.5 -->
+    
+    <!-- Begin: Added/Updated in 5.0.8 -->
+    <string name="new_in_508">
+		<![CDATA[
+			<p><b>Nouveau dans la version 5.0.8</b>\n\n
+				* Mise à jour de la version française (Imkal)\n\n
+			</p>
+		]]>
+    </string>
+    <!-- End: Added/Updated in 5.0.8 -->
 
 </resources>
